@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
@@ -80,4 +82,19 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 		log.Fatalln(err5)
 	}
 
+	jobpostIDUUID := uuid.New()
+	jobpostID := jobpostIDUUID.String()
+
+	jobpost := Jobpost{
+		ID:          jobpostID,
+		CreatedBy:   request.UserId,
+		CreatedAt:   time.Now(),
+		Company:     companyStr,
+		Position:    positionStr,
+		Description: descriptionStr,
+		Skills:      skillsStr,
+		Experience:  experienceStr,
+		Location:    locationStr,
+	}
+	p.addJobpost(jobpost)
 }

@@ -3,6 +3,7 @@ module github.com/rr250/typeform-plugin
 go 1.12
 
 require (
+	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.4
 	github.com/mattermost/mattermost-server/v5 v5.20.1
 	github.com/mholt/archiver/v3 v3.3.0
