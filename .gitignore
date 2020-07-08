@@ -1,7 +1,14 @@
 dist
-
+server/dist
 # Mac
 .DS_Store
 
 # VSCode
 .vscode
+dist/com.github.rr250.jobpost-plugin-0.0.1.tar.gz
+dist/com.github.rr250.jobpost-plugin/server/dist/plugin-darwin-amd64
+dist/com.github.rr250.jobpost-plugin/server/dist/plugin-linux-amd64
+dist/com.github.rr250.jobpost-plugin/server/dist/plugin-windows-amd64.exe
+server/dist/plugin-darwin-amd64
+server/dist/plugin-linux-amd64
+server/dist/plugin-windows-amd64.exe

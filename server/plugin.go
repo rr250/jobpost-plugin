@@ -9,11 +9,8 @@ import (
 
 type Plugin struct {
 	plugin.MattermostPlugin
-	router *mux.Router
-	// configurationLock synchronizes access to the configuration.
+	router            *mux.Router
+	botUserID         string
 	configurationLock sync.RWMutex
-
-	// configuration is the active plugin configuration. Consult getConfiguration and
-	// setConfiguration for usage.
-	configuration *configuration
+	configuration     *configuration
 }

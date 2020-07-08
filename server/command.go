@@ -8,10 +8,6 @@ import (
 	"github.com/mattermost/mattermost-server/v5/plugin"
 )
 
-const (
-	trigger = "form"
-)
-
 // type Field struct {
 // 	Title string `json:"title"`
 // 	Ref   string `json:"ref"`

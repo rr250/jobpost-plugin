@@ -43,19 +43,19 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 	skillsStr := skills.(string)
 	experienceStr := experience.(string)
 	locationStr := location.(string)
-	var userId string
+	var userID string
 	if anonymous.(bool) {
-		userId = "4mp6uzgnh3dxpg1w3z6gx9kicw"
+		userID = p.botUserID
 	} else {
-		userId = request.UserId
+		userID = request.UserId
 	}
 	postModel := &model.Post{
-		UserId:    userId,
+		UserId:    userID,
 		ChannelId: request.ChannelId,
-		Message:   "Company: " + companyStr + "\nPositon: " + positionStr + "\nDescription: " + descriptionStr + "\nSkills: " + skillsStr + "\nExperience Required: " + experienceStr + "\nLocation: " + locationStr,
 		Props: model.StringInterface{
 			"attachments": []*model.SlackAttachment{
 				{
+					Text: "Company: " + companyStr + "\nPositon: " + positionStr + "\nDescription: " + descriptionStr + "\nSkills: " + skillsStr + "\nExperience Required: " + experienceStr + "\nLocation: " + locationStr,
 					Actions: []*model.PostAction{
 						{
 							Integration: &model.PostActionIntegration{
