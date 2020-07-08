@@ -31,23 +31,28 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 	// }
 
 	company := request.Submission["company"]
-	// positon := request.Submission["positon"]
-	// description := request.Submission["description"]
-	// skills := request.Submission["skills"]
-	// experience := request.Submission["experience"]
-	// location := request.Submission["location"]
-	// name := request.Submission["name"]
-	// email := request.Submission["email"]
-	// resume := request.Submission["resume"]
-	// reason := request.Submission["reason"]
-
-	// strs := []string{company.(string), positon.(string), description.(string), skills.(string), experience.(string), location.(string)}
-	// postText := strings.Join(strs, "\n")
-	// log.Printf(postText)
+	position := request.Submission["position"]
+	description := request.Submission["description"]
+	skills := request.Submission["skills"]
+	experience := request.Submission["experience"]
+	location := request.Submission["location"]
+	anonymous := request.Submission["anonymous"]
+	companyStr := company.(string)
+	positionStr := position.(string)
+	descriptionStr := description.(string)
+	skillsStr := skills.(string)
+	experienceStr := experience.(string)
+	locationStr := location.(string)
+	var userId string
+	if anonymous.(bool) {
+		userId = "4mp6uzgnh3dxpg1w3z6gx9kicw"
+	} else {
+		userId = request.UserId
+	}
 	postModel := &model.Post{
-		UserId:    request.UserId,
+		UserId:    userId,
 		ChannelId: request.ChannelId,
-		Message:   company.(string),
+		Message:   "Company: " + companyStr + "\nPositon: " + positionStr + "\nDescription: " + descriptionStr + "\nSkills: " + skillsStr + "\nExperience Required: " + experienceStr + "\nLocation: " + locationStr,
 		Props: model.StringInterface{
 			"attachments": []*model.SlackAttachment{
 				{
