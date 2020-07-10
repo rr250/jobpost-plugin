@@ -61,11 +61,6 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 					Actions: []*model.PostAction{
 						{
 							Integration: &model.PostActionIntegration{
-								// Context: model.StringInterface{
-								// 	"reminder_id":   r.Reminder.Id,
-								// 	"occurrence_id": r.Reminder.Occurrences[0].Id,
-								// 	"action":        "delete/ephemeral",
-								// },
 								URL: fmt.Sprintf("/plugins/%s/fillform  ", manifest.ID),
 							},
 							Type: model.POST_ACTION_TYPE_BUTTON,
