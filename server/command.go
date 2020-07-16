@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strings"
+	"time"
 
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
@@ -98,6 +100,47 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 		}
 		if pErr := p.API.OpenInteractiveDialog(dialogRequest); pErr != nil {
 			p.API.LogError("Failed opening interactive dialog " + pErr.Error())
+		}
+	} else if strings.Trim(command, " ") == "/"+trigger+" list" {
+		log.Println("list")
+		jobposts, err := p.getJobsPerUser(args.UserId)
+		if err == nil {
+			for _, jobpost := range jobposts {
+				postModel := &model.Post{
+					UserId:    args.UserId,
+					ChannelId: args.ChannelId,
+					Message:   "Jobposts :-",
+					Props: model.StringInterface{
+						"attachments": []*model.SlackAttachment{
+							{
+								Text: "Jobpost:" + jobpost.Details + "\nCreatedAt:" + jobpost.CreatedAt.Format(time.ANSIC),
+								Actions: []*model.PostAction{
+									{
+										Integration: &model.PostActionIntegration{
+											URL: fmt.Sprintf("/plugins/%s/getjobpostbyid", manifest.ID),
+											Context: model.StringInterface{
+												"action":    "getjobpostbyid",
+												"jobpostid": jobpost.JobpostID,
+											},
+										},
+										Type: model.POST_ACTION_TYPE_BUTTON,
+										Name: "Fetch Jobpost",
+									},
+								},
+							},
+						},
+					},
+				}
+				p.API.SendEphemeralPost(args.UserId, postModel)
+			}
+
+		} else {
+			postModel := &model.Post{
+				UserId:    args.UserId,
+				ChannelId: args.ChannelId,
+				Message:   "No Jobposts",
+			}
+			p.API.SendEphemeralPost(args.UserId, postModel)
 		}
 	}
 	return &model.CommandResponse{}, nil

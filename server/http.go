@@ -18,6 +18,7 @@ func (p *Plugin) InitAPI() *mux.Router {
 	r.HandleFunc("/dialog", p.handleDialog).Methods("POST")
 	r.HandleFunc("/applytojob", p.applyToJob).Methods("POST")
 	r.HandleFunc("/submit", p.submit).Methods("POST")
+	r.HandleFunc("/getjobpostbyid", p.getJobPostByID).Methods("POST")
 	return r
 }
 
@@ -177,6 +178,13 @@ func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 	}
 	p.addJobpostResponse(request.State, jobpostResponse)
 
+}
+
+func (p *Plugin) getJobPostByID(w http.ResponseWriter, req *http.Request) {
+	request := model.PostActionIntegrationRequestFromJson(req.Body)
+	jobpostID := request.Context["jobpostid"].(string)
+	log.Println(jobpostID)
+	writePostActionIntegrationResponseOk(w, &model.PostActionIntegrationResponse{})
 }
 
 func writePostActionIntegrationResponseOk(w http.ResponseWriter, response *model.PostActionIntegrationResponse) {

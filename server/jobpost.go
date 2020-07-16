@@ -29,6 +29,12 @@ type JobpostResponse struct {
 	Experience int
 }
 
+type JobPerUser struct {
+	JobpostID string
+	Details   string
+	CreatedAt time.Time
+}
+
 func (p *Plugin) addJobpost(jobpost Jobpost) {
 	p.API.LogInfo(jobpost.CreatedBy)
 	jobpostJSON, err1 := json.Marshal(jobpost)
@@ -49,17 +55,20 @@ func (p *Plugin) addJobpost(jobpost Jobpost) {
 		p.API.LogError("failed KVGet %s", err2)
 		return
 	}
-	var jobposts []string
+	jobPerUser := JobPerUser{
+		JobpostID: jobpost.ID,
+		Details:   jobpost.Company + " - " + jobpost.Position,
+		CreatedAt: jobpost.CreatedAt,
+	}
+	var jobposts []JobPerUser
 	if bytes != nil {
 		if err3 := json.Unmarshal(bytes, &jobposts); err3 != nil {
 			return
 		}
-		jobposts = append(jobposts, jobpost.ID)
+		jobposts = append(jobposts, jobPerUser)
 	} else {
-		jobposts = []string{jobpost.ID}
+		jobposts = []JobPerUser{jobPerUser}
 	}
-
-	p.API.LogInfo(jobposts[0])
 	jobpostsJSON, err4 := json.Marshal(jobposts)
 	if err4 != nil {
 		p.API.LogError("failed to marshal Jobposts  %s", jobposts)
@@ -97,4 +106,22 @@ func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostRespon
 		return
 	}
 	return
+}
+
+func (p *Plugin) getJobsPerUser(userID string) ([]JobPerUser, interface{}) {
+	var jobposts []JobPerUser
+	bytes, err2 := p.API.KVGet(userID)
+	p.API.LogInfo(string(bytes))
+	if err2 != nil {
+		p.API.LogError("failed KVGet %s", err2)
+		return jobposts, err2
+	}
+	if bytes != nil {
+		if err3 := json.Unmarshal(bytes, &jobposts); err3 != nil {
+			return jobposts, err3
+		}
+	} else {
+		return jobposts, "No Jobposts"
+	}
+	return jobposts, nil
 }
