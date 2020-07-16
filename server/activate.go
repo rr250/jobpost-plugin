@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	trigger = "form"
+	trigger = "jobpost"
 )
 
 const (
@@ -18,11 +18,11 @@ const (
 func (p *Plugin) OnActivate() error {
 	p.API.RegisterCommand(&model.Command{
 		Trigger:          trigger,
-		Description:      "Make a form",
-		DisplayName:      "Make a form",
+		Description:      "Make a JobPost form",
+		DisplayName:      "Make a JobPost form",
 		AutoComplete:     true,
-		AutoCompleteDesc: "Make a form (Use it by clicking reply first then slash command)",
-		AutoCompleteHint: "Make a form",
+		AutoCompleteDesc: "Write /jobpost and press enter",
+		AutoCompleteHint: "Make a jobpost form",
 	})
 	botUserID, err := p.ensureBotExists()
 	if err != nil {

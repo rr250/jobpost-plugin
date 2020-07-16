@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,6 +16,8 @@ import (
 func (p *Plugin) InitAPI() *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/dialog", p.handleDialog).Methods("POST")
+	r.HandleFunc("/applytojob", p.applyToJob).Methods("POST")
+	r.HandleFunc("/submit", p.submit).Methods("POST")
 	return r
 }
 
@@ -26,24 +29,23 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 
 	request := model.SubmitDialogRequestFromJson(req.Body)
 
-	// user, uErr := p.API.GetUser(request.UserId)
-	// if uErr != nil {
-	// 	p.API.LogError(uErr.Error())
-	// 	return
-	// }
+	jobpostIDUUID := uuid.New()
+	jobpostID := jobpostIDUUID.String()
 
 	company := request.Submission["company"]
 	position := request.Submission["position"]
 	description := request.Submission["description"]
 	skills := request.Submission["skills"]
-	experience := request.Submission["experience"]
+	minExperience := request.Submission["minExperience"]
+	maxExperience := request.Submission["maxExperience"]
 	location := request.Submission["location"]
 	anonymous := request.Submission["anonymous"]
 	companyStr := company.(string)
 	positionStr := position.(string)
 	descriptionStr := description.(string)
 	skillsStr := skills.(string)
-	experienceStr := experience.(string)
+	minExperienceStr := strconv.Itoa(int(minExperience.(float64)))
+	maxExperienceStr := strconv.Itoa(int(maxExperience.(float64)))
 	locationStr := location.(string)
 	var userID string
 	if anonymous.(bool) {
@@ -57,14 +59,19 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 		Props: model.StringInterface{
 			"attachments": []*model.SlackAttachment{
 				{
-					Text: "Company: " + companyStr + "\nPositon: " + positionStr + "\nDescription: " + descriptionStr + "\nSkills: " + skillsStr + "\nExperience Required: " + experienceStr + "\nLocation: " + locationStr,
+					Text: "Company: " + companyStr + "\nPositon: " + positionStr + "\nDescription: " + descriptionStr + "\nSkills: " + skillsStr + "\nExperience Required: " + minExperienceStr + "-" + maxExperienceStr + " years" + "\nLocation: " + locationStr,
 					Actions: []*model.PostAction{
 						{
 							Integration: &model.PostActionIntegration{
-								URL: fmt.Sprintf("/plugins/%s/fillform  ", manifest.ID),
+								URL: fmt.Sprintf("/plugins/%s/applytojob", manifest.ID),
+								Context: model.StringInterface{
+									"action":    "applyToJob",
+									"submision": request.Submission,
+									"jobpostid": jobpostID,
+								},
 							},
 							Type: model.POST_ACTION_TYPE_BUTTON,
-							Name: "Fill the form",
+							Name: "Apply",
 						},
 					},
 				},
@@ -77,19 +84,103 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 		log.Fatalln(err5)
 	}
 
-	jobpostIDUUID := uuid.New()
-	jobpostID := jobpostIDUUID.String()
-
 	jobpost := Jobpost{
-		ID:          jobpostID,
-		CreatedBy:   request.UserId,
-		CreatedAt:   time.Now(),
-		Company:     companyStr,
-		Position:    positionStr,
-		Description: descriptionStr,
-		Skills:      skillsStr,
-		Experience:  experienceStr,
-		Location:    locationStr,
+		ID:            jobpostID,
+		CreatedBy:     request.UserId,
+		CreatedAt:     time.Now(),
+		Company:       companyStr,
+		Position:      positionStr,
+		Description:   descriptionStr,
+		Skills:        skillsStr,
+		MinExperience: int(minExperience.(float64)),
+		MaxExperience: int(minExperience.(float64)),
+		Location:      locationStr,
+		ExperienceReq: request.Submission["experience"].(bool),
 	}
 	p.addJobpost(jobpost)
+}
+
+func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
+	request := model.PostActionIntegrationRequestFromJson(req.Body)
+	log.Println(request.TriggerId)
+	log.Println(request.Context["submision"])
+	submision := request.Context["submision"].(map[string]interface{})
+	log.Println(submision["company"])
+	writePostActionIntegrationResponseOk(w, &model.PostActionIntegrationResponse{})
+	dialogRequest := model.OpenDialogRequest{
+		TriggerId: request.TriggerId,
+		URL:       fmt.Sprintf("/plugins/%s/submit", manifest.ID),
+		Dialog: model.Dialog{
+			Title:       submision["company"].(string) + " - " + submision["position"].(string),
+			CallbackId:  model.NewId(),
+			SubmitLabel: "Submit",
+			State:       request.Context["jobpostid"].(string),
+			Elements: []model.DialogElement{
+				{
+					DisplayName: "Name",
+					Name:        "name",
+					Type:        "text",
+					SubType:     "text",
+					Default:     " ",
+				},
+				{
+					DisplayName: "Email",
+					Name:        "email",
+					Type:        "text",
+					SubType:     "email",
+					Default:     "@gmail.com",
+				},
+				{
+					DisplayName: "Resume",
+					Name:        "resume",
+					HelpText:    "Put the URL of your resume. Please make sure that it is accessible.",
+					Type:        "text",
+					SubType:     "text",
+					Default:     " ",
+					Optional:    !submision["resume"].(bool),
+				},
+				{
+					DisplayName: "Reason on why are you interested",
+					Name:        "reason",
+					Type:        "textarea",
+					SubType:     "text",
+					Default:     " ",
+					Optional:    !submision["reason"].(bool),
+				},
+				{
+					DisplayName: "Experience",
+					Name:        "experience",
+					Placeholder: "Write only the year",
+					Type:        "text",
+					SubType:     "number",
+					Optional:    !submision["experience"].(bool),
+				},
+			},
+		},
+	}
+	if pErr := p.API.OpenInteractiveDialog(dialogRequest); pErr != nil {
+		p.API.LogError("Failed opening interactive dialog " + pErr.Error())
+	}
+}
+
+func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
+
+	request := model.SubmitDialogRequestFromJson(req.Body)
+	experience, _ := request.Submission["experience"].(float64)
+	jobpostResponse := JobpostResponse{
+		UserID:     request.UserId,
+		Name:       request.Submission["name"].(string),
+		Email:      request.Submission["email"].(string),
+		Resume:     request.Submission["resume"].(string),
+		Reason:     request.Submission["reason"].(string),
+		Experience: int(experience),
+	}
+	p.addJobpostResponse(request.State, jobpostResponse)
+
+}
+
+func writePostActionIntegrationResponseOk(w http.ResponseWriter, response *model.PostActionIntegrationResponse) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(response.ToJson())
 }
