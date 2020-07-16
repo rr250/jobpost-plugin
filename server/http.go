@@ -184,6 +184,24 @@ func (p *Plugin) getJobPostByID(w http.ResponseWriter, req *http.Request) {
 	request := model.PostActionIntegrationRequestFromJson(req.Body)
 	jobpostID := request.Context["jobpostid"].(string)
 	log.Println(jobpostID)
+	jobpost, err := p.getJobPost(jobpostID)
+	if err == nil {
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   "Company: " + jobpost.Company + "\nPositon: " + jobpost.Position + "\nDescription: " + jobpost.Description + "\nSkills: " + jobpost.Skills + "\nExperience Required: " + strconv.Itoa(jobpost.MinExperience) + "-" + strconv.Itoa(jobpost.MaxExperience) + " years" + "\nLocation: " + jobpost.Location,
+			Props: model.StringInterface{
+				"attachments": []*model.SlackAttachment{},
+			},
+		}
+		for _, jobpostResponse := range jobpost.JobpostResponses {
+			attachment := &model.SlackAttachment{
+				Text: "Name: " + jobpostResponse.Name + "\nEmail: " + jobpostResponse.Email + "\nResume: " + jobpostResponse.Resume + "\nReason" + jobpostResponse.Reason,
+			}
+			postModel.Props["attachments"] = append(postModel.Props["attachments"].([]*model.SlackAttachment), attachment)
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+	}
 	writePostActionIntegrationResponseOk(w, &model.PostActionIntegrationResponse{})
 }
 

@@ -125,3 +125,17 @@ func (p *Plugin) getJobsPerUser(userID string) ([]JobPerUser, interface{}) {
 	}
 	return jobposts, nil
 }
+
+func (p *Plugin) getJobPost(jobpostID string) (Jobpost, interface{}) {
+	var jobpost Jobpost
+	bytes, err1 := p.API.KVGet(jobpostID)
+	if err1 != nil {
+		p.API.LogError("failed KVGet %s", err1)
+		return jobpost, err1
+	}
+	if err2 := json.Unmarshal(bytes, &jobpost); err2 != nil {
+		p.API.LogError("failed to unmarshal", err2)
+		return jobpost, err2
+	}
+	return jobpost, nil
+}
