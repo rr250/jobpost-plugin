@@ -174,6 +174,33 @@ func (p *Plugin) subscribeToExperience(userID string, year int) interface{} {
 	return nil
 }
 
+func (p *Plugin) unSubscribeToExperience(userID string, year int) interface{} {
+	bytes, err2 := p.API.KVGet("year-" + strconv.Itoa(year))
+	p.API.LogInfo(string(bytes))
+	if err2 != nil {
+		p.API.LogError("failed KVGet %s", err2)
+		return fmt.Sprintf("failed KVGet %s", err2)
+	}
+	var subscribers []string
+	if bytes != nil {
+		if err3 := json.Unmarshal(bytes, &subscribers); err3 != nil {
+			return fmt.Sprintf("failed to unmarshal  %s", err3)
+		}
+		for i := range subscribers {
+			if subscribers[i] == userID {
+				subscribers = append(subscribers[:i], subscribers[i+1:]...)
+			}
+		}
+		subscribersJSON, err4 := json.Marshal(subscribers)
+		if err4 != nil {
+			p.API.LogError("failed to marshal Jobposts  %s", subscribers)
+			return fmt.Sprintf("failed to marshal Jobposts  %s", subscribers)
+		}
+		p.API.KVSet("year-"+strconv.Itoa(year), subscribersJSON)
+	}
+	return nil
+}
+
 func (p *Plugin) sendToSubscribers(postModel *model.Post, year int) {
 	bytes, err2 := p.API.KVGet("year-" + strconv.Itoa(year))
 	p.API.LogInfo(string(bytes))
