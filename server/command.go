@@ -100,6 +100,12 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 		}
 		if pErr := p.API.OpenInteractiveDialog(dialogRequest); pErr != nil {
 			p.API.LogError("Failed opening interactive dialog " + pErr.Error())
+			postModel := &model.Post{
+				UserId:    args.UserId,
+				ChannelId: args.ChannelId,
+				Message:   fmt.Sprintf("Failed opening interactive dialog " + pErr.Error()),
+			}
+			p.API.SendEphemeralPost(args.UserId, postModel)
 		}
 	} else if strings.Trim(command, " ") == "/"+trigger+" list" {
 		log.Println("list")
@@ -138,7 +144,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 			postModel := &model.Post{
 				UserId:    args.UserId,
 				ChannelId: args.ChannelId,
-				Message:   "No Jobposts",
+				Message:   err.(string),
 			}
 			p.API.SendEphemeralPost(args.UserId, postModel)
 		}

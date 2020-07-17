@@ -82,7 +82,13 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 
 	_, err5 := p.API.CreatePost(postModel)
 	if err5 != nil {
-		log.Fatalln(err5)
+		p.API.LogError("failed to create post", err5)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("failed to create post %s", err5),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
 	}
 
 	jobpost := Jobpost{
@@ -94,19 +100,24 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 		Description:   descriptionStr,
 		Skills:        skillsStr,
 		MinExperience: int(minExperience.(float64)),
-		MaxExperience: int(minExperience.(float64)),
+		MaxExperience: int(maxExperience.(float64)),
 		Location:      locationStr,
 		ExperienceReq: request.Submission["experience"].(bool),
 	}
-	p.addJobpost(jobpost)
+	err6 := p.addJobpost(jobpost)
+	if err6 != nil {
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   err6.(string),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+	}
 }
 
 func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 	request := model.PostActionIntegrationRequestFromJson(req.Body)
-	log.Println(request.TriggerId)
-	log.Println(request.Context["submision"])
 	submision := request.Context["submision"].(map[string]interface{})
-	log.Println(submision["company"])
 	writePostActionIntegrationResponseOk(w, &model.PostActionIntegrationResponse{})
 	dialogRequest := model.OpenDialogRequest{
 		TriggerId: request.TriggerId,
@@ -161,6 +172,12 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 	}
 	if pErr := p.API.OpenInteractiveDialog(dialogRequest); pErr != nil {
 		p.API.LogError("Failed opening interactive dialog " + pErr.Error())
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("Failed opening interactive dialog " + pErr.Error()),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
 	}
 }
 
@@ -176,7 +193,15 @@ func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 		Reason:     request.Submission["reason"].(string),
 		Experience: int(experience),
 	}
-	p.addJobpostResponse(request.State, jobpostResponse)
+	err := p.addJobpostResponse(request.State, jobpostResponse)
+	if err != nil {
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   err.(string),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+	}
 
 }
 
@@ -199,6 +224,13 @@ func (p *Plugin) getJobPostByID(w http.ResponseWriter, req *http.Request) {
 				Text: "Name: " + jobpostResponse.Name + "\nEmail: " + jobpostResponse.Email + "\nResume: " + jobpostResponse.Resume + "\nReason" + jobpostResponse.Reason,
 			}
 			postModel.Props["attachments"] = append(postModel.Props["attachments"].([]*model.SlackAttachment), attachment)
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+	} else {
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   err.(string),
 		}
 		p.API.SendEphemeralPost(request.UserId, postModel)
 	}
