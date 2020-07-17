@@ -5,7 +5,7 @@ _**A Plugin that makes task of creating Jobposts in Scaler chat based on Matterm
 ### Usage
 
 * `/jobpost` - opens up an [interactive dialog] to create a Jobpost
-* `/remind list` - displays a list of jobposts created by you
+* `/jobpost list` - displays a list of jobposts created by you
 
 ### Build
 
