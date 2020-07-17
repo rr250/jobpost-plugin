@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -148,6 +149,36 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 			}
 			p.API.SendEphemeralPost(args.UserId, postModel)
 		}
+	} else if splitText := strings.Split(strings.Trim(command, " "), " "); splitText[1] == "subscribe" {
+		log.Println("subscribe")
+		year, err1 := strconv.Atoi(splitText[2])
+		if err1 != nil {
+			postModel := &model.Post{
+				UserId:    args.UserId,
+				ChannelId: args.ChannelId,
+				Message:   "Wrong Command Syntax. Subscribe Command Example: /" + trigger + " subscribe 2 years",
+			}
+			p.API.SendEphemeralPost(args.UserId, postModel)
+		} else {
+			err := p.subscribeToExperience(args.UserId, year)
+			if err == nil {
+				postModel := &model.Post{
+					UserId:    args.UserId,
+					ChannelId: args.ChannelId,
+					Message:   "Subscribed",
+				}
+				p.API.SendEphemeralPost(args.UserId, postModel)
+			} else {
+				postModel := &model.Post{
+					UserId:    args.UserId,
+					ChannelId: args.ChannelId,
+					Message:   err.(string),
+				}
+				p.API.SendEphemeralPost(args.UserId, postModel)
+			}
+
+		}
+
 	}
 	return &model.CommandResponse{}, nil
 }

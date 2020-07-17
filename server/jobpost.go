@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -139,4 +140,36 @@ func (p *Plugin) getJobPost(jobpostID string) (Jobpost, interface{}) {
 		return jobpost, fmt.Sprintf("failed to unmarshal %s", err2)
 	}
 	return jobpost, nil
+}
+
+func (p *Plugin) subscribeToExperience(userID string, year int) interface{} {
+	// channelID, err1 := p.API.GetDirectChannel(userID,p.botUserID)
+
+	bytes, err2 := p.API.KVGet("year-" + strconv.Itoa(year))
+	p.API.LogInfo(string(bytes))
+	if err2 != nil {
+		p.API.LogError("failed KVGet %s", err2)
+		return fmt.Sprintf("failed KVGet %s", err2)
+	}
+	var subscribers []string
+	if bytes != nil {
+		if err3 := json.Unmarshal(bytes, &subscribers); err3 != nil {
+			return fmt.Sprintf("failed to unmarshal  %s", err3)
+		}
+		for _, subscriber := range subscribers {
+			if subscriber == userID {
+				return "You are already subscribed"
+			}
+		}
+		subscribers = append(subscribers, userID)
+	} else {
+		subscribers = []string{userID}
+	}
+	subscribersJSON, err4 := json.Marshal(subscribers)
+	if err4 != nil {
+		p.API.LogError("failed to marshal Jobposts  %s", subscribers)
+		return fmt.Sprintf("failed to marshal Jobposts  %s", subscribers)
+	}
+	p.API.KVSet("year-"+strconv.Itoa(year), subscribersJSON)
+	return nil
 }
