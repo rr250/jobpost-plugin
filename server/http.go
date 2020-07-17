@@ -54,7 +54,7 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 	} else {
 		userID = request.UserId
 	}
-	postModel := &model.Post{
+	postModel1 := &model.Post{
 		UserId:    userID,
 		ChannelId: request.ChannelId,
 		Props: model.StringInterface{
@@ -80,7 +80,7 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 		},
 	}
 
-	_, err5 := p.API.CreatePost(postModel)
+	_, err5 := p.API.CreatePost(postModel1)
 	if err5 != nil {
 		p.API.LogError("failed to create post", err5)
 		postModel := &model.Post{
@@ -112,6 +112,10 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 			Message:   err6.(string),
 		}
 		p.API.SendEphemeralPost(request.UserId, postModel)
+	}
+
+	for i := jobpost.MinExperience; i <= jobpost.MaxExperience; i++ {
+		p.sendToSubscribers(postModel1, i)
 	}
 }
 
