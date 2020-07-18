@@ -1,4 +1,4 @@
-module github.com/rr250/typeform-plugin
+module github.com/rr250/jobpost-plugin
 
 go 1.12
 
