@@ -18,11 +18,11 @@ const (
 func (p *Plugin) OnActivate() error {
 	p.API.RegisterCommand(&model.Command{
 		Trigger:          trigger,
-		Description:      "Make a JobPost form",
-		DisplayName:      "Make a JobPost form",
+		Description:      "Command for JobPost Plugin",
+		DisplayName:      "Command for JobPost Plugin",
 		AutoComplete:     true,
-		AutoCompleteDesc: "Write /jobpost and press enter",
-		AutoCompleteHint: "Make a jobpost form",
+		AutoCompleteDesc: "Type /jobpost and press enter. For more commands type /jobpost help",
+		AutoCompleteHint: "Command for JobPost Plugin",
 	})
 	botUserID, err := p.ensureBotExists()
 	if err != nil {

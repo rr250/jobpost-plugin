@@ -225,7 +225,7 @@ func (p *Plugin) getJobPostByID(w http.ResponseWriter, req *http.Request) {
 		}
 		for _, jobpostResponse := range jobpost.JobpostResponses {
 			attachment := &model.SlackAttachment{
-				Text: "Name: " + jobpostResponse.Name + "\nEmail: " + jobpostResponse.Email + "\nResume: " + jobpostResponse.Resume + "\nReason" + jobpostResponse.Reason,
+				Text: "Name: " + jobpostResponse.Name + "\nEmail: " + jobpostResponse.Email + "\nResume: " + jobpostResponse.Resume + "\nReason:" + jobpostResponse.Reason,
 			}
 			postModel.Props["attachments"] = append(postModel.Props["attachments"].([]*model.SlackAttachment), attachment)
 		}

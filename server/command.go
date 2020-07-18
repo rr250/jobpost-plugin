@@ -205,6 +205,13 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 				p.API.SendEphemeralPost(args.UserId, postModel)
 			}
 		}
+	} else if strings.Trim(command, " ") == "/"+trigger+" help" {
+		postModel := &model.Post{
+			UserId:    args.UserId,
+			ChannelId: args.ChannelId,
+			Message:   "* `/jobpost` - opens up an [interactive dialog] to create a Jobpost \n* `/jobpost list` - displays a list of jobposts created by you \n* `/jobpost subscribe x years` - subscribes to jobposts which requires x years of experience where x is an integer \n* `/jobpost unsubscribe x years` - unsubscribes to jobposts which requires x years of experience where x is an integer",
+		}
+		p.API.SendEphemeralPost(args.UserId, postModel)
 	}
 
 	return &model.CommandResponse{}, nil
