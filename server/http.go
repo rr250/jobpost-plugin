@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/csv"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,6 +21,7 @@ func (p *Plugin) InitAPI() *mux.Router {
 	r.HandleFunc("/applytojob", p.applyToJob).Methods("POST")
 	r.HandleFunc("/submit", p.submit).Methods("POST")
 	r.HandleFunc("/getjobpostbyid", p.getJobPostByID).Methods("POST")
+	r.HandleFunc("/downloadjobpostbyid", p.downloadJobPostByID).Methods("POST")
 	return r
 }
 
@@ -89,6 +92,13 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 			Message:   fmt.Sprintf("failed to create post %s", err5),
 		}
 		p.API.SendEphemeralPost(request.UserId, postModel)
+	} else {
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   "Jobpost created. See all your jobposts by command `/jobpost list`",
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
 	}
 
 	jobpost := Jobpost{
@@ -123,6 +133,21 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 	request := model.PostActionIntegrationRequestFromJson(req.Body)
 	submision := request.Context["submision"].(map[string]interface{})
 	writePostActionIntegrationResponseOk(w, &model.PostActionIntegrationResponse{})
+	user, err := p.API.GetUser(request.UserId)
+	userFullName := " "
+	userEmail := "@gmail.com"
+	if err != nil {
+		p.API.LogError("failed to get user", err)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("failed to get user %s", err),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+	} else {
+		userFullName = user.FirstName + " " + user.LastName
+		userEmail = user.Email
+	}
 	dialogRequest := model.OpenDialogRequest{
 		TriggerId: request.TriggerId,
 		URL:       fmt.Sprintf("/plugins/%s/submit", manifest.ID),
@@ -137,19 +162,19 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 					Name:        "name",
 					Type:        "text",
 					SubType:     "text",
-					Default:     " ",
+					Default:     userFullName,
 				},
 				{
 					DisplayName: "Email",
 					Name:        "email",
 					Type:        "text",
 					SubType:     "email",
-					Default:     "@gmail.com",
+					Default:     userEmail,
 				},
 				{
 					DisplayName: "Resume",
 					Name:        "resume",
-					HelpText:    "Put the URL of your resume. Please make sure that it is accessible.",
+					HelpText:    "Put the URL of your resume. Please make sure that it is accessible. To make sure that it is accessible try opening it in incognito mode.",
 					Type:        "text",
 					SubType:     "text",
 					Default:     " ",
@@ -196,6 +221,7 @@ func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 		Resume:     request.Submission["resume"].(string),
 		Reason:     request.Submission["reason"].(string),
 		Experience: int(experience),
+		FilledAt:   time.Now(),
 	}
 	err := p.addJobpostResponse(request.State, jobpostResponse)
 	if err != nil {
@@ -220,7 +246,23 @@ func (p *Plugin) getJobPostByID(w http.ResponseWriter, req *http.Request) {
 			ChannelId: request.ChannelId,
 			Message:   "Company: " + jobpost.Company + "\nPositon: " + jobpost.Position + "\nDescription: " + jobpost.Description + "\nSkills: " + jobpost.Skills + "\nExperience Required: " + strconv.Itoa(jobpost.MinExperience) + "-" + strconv.Itoa(jobpost.MaxExperience) + " years" + "\nLocation: " + jobpost.Location,
 			Props: model.StringInterface{
-				"attachments": []*model.SlackAttachment{},
+				"attachments": []*model.SlackAttachment{
+					{
+						Actions: []*model.PostAction{
+							{
+								Integration: &model.PostActionIntegration{
+									URL: fmt.Sprintf("/plugins/%s/downloadjobpostbyid", manifest.ID),
+									Context: model.StringInterface{
+										"action":    "downloadjobpostbyid",
+										"jobpostid": jobpost.ID,
+									},
+								},
+								Type: model.POST_ACTION_TYPE_BUTTON,
+								Name: "Download Responses as csv",
+							},
+						},
+					},
+				},
 			},
 		}
 		for _, jobpostResponse := range jobpost.JobpostResponses {
@@ -230,6 +272,95 @@ func (p *Plugin) getJobPostByID(w http.ResponseWriter, req *http.Request) {
 			postModel.Props["attachments"] = append(postModel.Props["attachments"].([]*model.SlackAttachment), attachment)
 		}
 		p.API.SendEphemeralPost(request.UserId, postModel)
+	} else {
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   err.(string),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+	}
+	writePostActionIntegrationResponseOk(w, &model.PostActionIntegrationResponse{})
+}
+
+func (p *Plugin) downloadJobPostByID(w http.ResponseWriter, req *http.Request) {
+	request := model.PostActionIntegrationRequestFromJson(req.Body)
+	jobpostID := request.Context["jobpostid"].(string)
+	log.Println(jobpostID)
+	jobpost, err := p.getJobPost(jobpostID)
+	if err == nil {
+		buf := bytes.NewBuffer(nil)
+		writer := csv.NewWriter(buf)
+		err8 := writer.Write([]string{"Name", "Email", "Resume", "Reason"})
+		if err8 != nil {
+			p.API.LogError("Cannot write to file", err)
+			postModel := &model.Post{
+				UserId:    request.UserId,
+				ChannelId: request.ChannelId,
+				Message:   fmt.Sprintf("Cannot write to file %s", err),
+			}
+			p.API.SendEphemeralPost(request.UserId, postModel)
+		}
+		for _, jobpostResponse := range jobpost.JobpostResponses {
+			jobpostResponseCsv := []string{jobpostResponse.Name, jobpostResponse.Email, jobpostResponse.Resume, jobpostResponse.Reason}
+			err1 := writer.Write(jobpostResponseCsv)
+			if err1 != nil {
+				p.API.LogError("Cannot write to file %s", err1)
+				postModel := &model.Post{
+					UserId:    request.UserId,
+					ChannelId: request.ChannelId,
+					Message:   fmt.Sprintf("Cannot write to file %s", err1),
+				}
+				p.API.SendEphemeralPost(request.UserId, postModel)
+			}
+		}
+		writer.Flush()
+		data := buf.Bytes()
+		channel, err7 := p.API.GetDirectChannel(request.UserId, p.botUserID)
+		var channelID string
+		if err7 != nil {
+			p.API.LogError("failed to get channel", err7)
+			postModel := &model.Post{
+				UserId:    request.UserId,
+				ChannelId: request.ChannelId,
+				Message:   fmt.Sprintf("failed to get channel  %s", err7),
+			}
+			p.API.SendEphemeralPost(request.UserId, postModel)
+		}
+		channelID = channel.Id
+		fileInfo, err3 := p.API.UploadFile(data, channelID, jobpost.Company+"-"+jobpost.Position+"-"+strconv.Itoa(int(time.Now().Unix()))+".csv")
+		if err3 != nil {
+			p.API.LogError("Cannot upload file  %s", err3)
+			postModel := &model.Post{
+				UserId:    request.UserId,
+				ChannelId: request.ChannelId,
+				Message:   fmt.Sprintf("Cannot upload file  %s", err3),
+			}
+			p.API.SendEphemeralPost(request.UserId, postModel)
+		}
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: channelID,
+			FileIds:   []string{fileInfo.Id},
+		}
+
+		_, err6 := p.API.CreatePost(postModel)
+		if err6 != nil {
+			p.API.LogError("failed to create post", err6)
+			postModel := &model.Post{
+				UserId:    request.UserId,
+				ChannelId: request.ChannelId,
+				Message:   fmt.Sprintf("failed to create post %s", err6),
+			}
+			p.API.SendEphemeralPost(request.UserId, postModel)
+		} else {
+			postModel := &model.Post{
+				UserId:    request.UserId,
+				ChannelId: request.ChannelId,
+				Message:   "CSV file sent as a direct message",
+			}
+			p.API.SendEphemeralPost(request.UserId, postModel)
+		}
 	} else {
 		postModel := &model.Post{
 			UserId:    request.UserId,

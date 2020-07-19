@@ -31,6 +31,7 @@ type JobpostResponse struct {
 	Resume     string
 	Reason     string
 	Experience int
+	FilledAt   time.Time
 }
 
 type JobPerUser struct {

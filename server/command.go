@@ -22,7 +22,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 			Dialog: model.Dialog{
 				Title:       "New Job Posting",
 				CallbackId:  model.NewId(),
-				SubmitLabel: "Create Form",
+				SubmitLabel: "Create Jobpost",
 				Elements: []model.DialogElement{
 					{
 						DisplayName: "Company",
@@ -69,22 +69,20 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 						SubType:     "text",
 					},
 					{
-						DisplayName: "Resume",
-						Placeholder: "Include this field",
+						DisplayName: "Please check the fields which you want to include in your jobpost form.",
+						Placeholder: "Resume",
 						Name:        "resume",
 						Type:        "bool",
 						Optional:    true,
 					},
 					{
-						DisplayName: "Experience",
-						Placeholder: "Include this field",
+						Placeholder: "Experience",
 						Name:        "experience",
 						Type:        "bool",
 						Optional:    true,
 					},
 					{
-						DisplayName: "Reason on why are you interested",
-						Placeholder: "Include this field",
+						Placeholder: "Reason on why is applicant interested",
 						Name:        "reason",
 						Type:        "bool",
 						Optional:    true,
