@@ -246,23 +246,7 @@ func (p *Plugin) getJobPostByID(w http.ResponseWriter, req *http.Request) {
 			ChannelId: request.ChannelId,
 			Message:   "Company: " + jobpost.Company + "\nPositon: " + jobpost.Position + "\nDescription: " + jobpost.Description + "\nSkills: " + jobpost.Skills + "\nExperience Required: " + strconv.Itoa(jobpost.MinExperience) + "-" + strconv.Itoa(jobpost.MaxExperience) + " years" + "\nLocation: " + jobpost.Location,
 			Props: model.StringInterface{
-				"attachments": []*model.SlackAttachment{
-					{
-						Actions: []*model.PostAction{
-							{
-								Integration: &model.PostActionIntegration{
-									URL: fmt.Sprintf("/plugins/%s/downloadjobpostbyid", manifest.ID),
-									Context: model.StringInterface{
-										"action":    "downloadjobpostbyid",
-										"jobpostid": jobpost.ID,
-									},
-								},
-								Type: model.POST_ACTION_TYPE_BUTTON,
-								Name: "Download Responses as csv",
-							},
-						},
-					},
-				},
+				"attachments": []*model.SlackAttachment{},
 			},
 		}
 		for _, jobpostResponse := range jobpost.JobpostResponses {
@@ -271,6 +255,22 @@ func (p *Plugin) getJobPostByID(w http.ResponseWriter, req *http.Request) {
 			}
 			postModel.Props["attachments"] = append(postModel.Props["attachments"].([]*model.SlackAttachment), attachment)
 		}
+		attachment := &model.SlackAttachment{
+			Actions: []*model.PostAction{
+				{
+					Integration: &model.PostActionIntegration{
+						URL: fmt.Sprintf("/plugins/%s/downloadjobpostbyid", manifest.ID),
+						Context: model.StringInterface{
+							"action":    "downloadjobpostbyid",
+							"jobpostid": jobpost.ID,
+						},
+					},
+					Type: model.POST_ACTION_TYPE_BUTTON,
+					Name: "Download Responses as csv",
+				},
+			},
+		}
+		postModel.Props["attachments"] = append(postModel.Props["attachments"].([]*model.SlackAttachment), attachment)
 		p.API.SendEphemeralPost(request.UserId, postModel)
 	} else {
 		postModel := &model.Post{
