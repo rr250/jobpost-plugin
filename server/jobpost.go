@@ -40,6 +40,10 @@ type JobPerUser struct {
 	CreatedAt time.Time
 }
 
+type Subscriber struct {
+	UserID string
+}
+
 func (p *Plugin) addJobpost(jobpost Jobpost) interface{} {
 	p.API.LogInfo(jobpost.CreatedBy)
 	jobpostJSON, err1 := json.Marshal(jobpost)
@@ -152,19 +156,23 @@ func (p *Plugin) subscribeToExperience(userID string, year int) interface{} {
 		p.API.LogError("failed KVGet %s", err2)
 		return fmt.Sprintf("failed KVGet %s", err2)
 	}
-	var subscribers []string
+	var subscribers []Subscriber
+	newSubscriber := Subscriber{
+		UserID: userID,
+	}
 	if bytes != nil {
 		if err3 := json.Unmarshal(bytes, &subscribers); err3 != nil {
 			return fmt.Sprintf("failed to unmarshal  %s", err3)
 		}
 		for _, subscriber := range subscribers {
-			if subscriber == userID {
+			if subscriber.UserID == userID {
 				return "You are already subscribed"
 			}
 		}
-		subscribers = append(subscribers, userID)
+
+		subscribers = append(subscribers, newSubscriber)
 	} else {
-		subscribers = []string{userID}
+		subscribers = []Subscriber{newSubscriber}
 	}
 	subscribersJSON, err4 := json.Marshal(subscribers)
 	if err4 != nil {
@@ -182,14 +190,20 @@ func (p *Plugin) unSubscribeToExperience(userID string, year int) interface{} {
 		p.API.LogError("failed KVGet %s", err2)
 		return fmt.Sprintf("failed KVGet %s", err2)
 	}
-	var subscribers []string
+	var subscribers []Subscriber
 	if bytes != nil {
 		if err3 := json.Unmarshal(bytes, &subscribers); err3 != nil {
 			return fmt.Sprintf("failed to unmarshal  %s", err3)
 		}
+		if len(subscribers) == 0 {
+			return fmt.Sprintf("You are not a subscriber")
+		}
+		p.API.LogError("Length of subscribers  %d", len(subscribers))
 		for i := range subscribers {
-			if subscribers[i] == userID {
+			if subscribers[i].UserID == userID {
 				subscribers = append(subscribers[:i], subscribers[i+1:]...)
+			} else {
+				return fmt.Sprintf("You are not a subscriber")
 			}
 		}
 		subscribersJSON, err4 := json.Marshal(subscribers)
@@ -198,6 +212,8 @@ func (p *Plugin) unSubscribeToExperience(userID string, year int) interface{} {
 			return fmt.Sprintf("failed to marshal Jobposts  %s", subscribers)
 		}
 		p.API.KVSet("year-"+strconv.Itoa(year), subscribersJSON)
+	} else {
+		return fmt.Sprintf("You are not a subscriber")
 	}
 	return nil
 }
@@ -209,13 +225,13 @@ func (p *Plugin) sendToSubscribers(postModel *model.Post, year int) {
 		p.API.LogError("failed KVGet %s", err2)
 		return
 	}
-	var subscribers []string
+	var subscribers []Subscriber
 	if bytes != nil {
 		if err3 := json.Unmarshal(bytes, &subscribers); err3 != nil {
 			return
 		}
 		for _, subscriber := range subscribers {
-			channel, err1 := p.API.GetDirectChannel(subscriber, p.botUserID)
+			channel, err1 := p.API.GetDirectChannel(subscriber.UserID, p.botUserID)
 			if err1 == nil {
 				postModel.ChannelId = channel.Id
 				p.API.CreatePost(postModel)
