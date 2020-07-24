@@ -291,7 +291,7 @@ func (p *Plugin) downloadJobPostByID(w http.ResponseWriter, req *http.Request) {
 	if err == nil {
 		buf := bytes.NewBuffer(nil)
 		writer := csv.NewWriter(buf)
-		err8 := writer.Write([]string{"Name", "Email", "Resume", "Reason"})
+		err8 := writer.Write([]string{"UserID", "Name", "Email", "Resume", "Experience", "Reason", "FilledAt"})
 		if err8 != nil {
 			p.API.LogError("Cannot write to file", err)
 			postModel := &model.Post{
@@ -302,7 +302,7 @@ func (p *Plugin) downloadJobPostByID(w http.ResponseWriter, req *http.Request) {
 			p.API.SendEphemeralPost(request.UserId, postModel)
 		}
 		for _, jobpostResponse := range jobpost.JobpostResponses {
-			jobpostResponseCsv := []string{jobpostResponse.Name, jobpostResponse.Email, jobpostResponse.Resume, jobpostResponse.Reason}
+			jobpostResponseCsv := []string{jobpostResponse.UserID, jobpostResponse.Name, jobpostResponse.Email, jobpostResponse.Resume, strconv.Itoa(jobpostResponse.Experience), jobpostResponse.Reason, jobpostResponse.FilledAt.Local().Format(time.RFC3339Nano)}
 			err1 := writer.Write(jobpostResponseCsv)
 			if err1 != nil {
 				p.API.LogError("Cannot write to file %s", err1)
