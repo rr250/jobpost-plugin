@@ -51,14 +51,14 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 					{
 						DisplayName: "Minimum Experience",
 						Name:        "minExperience",
-						Placeholder: "Write only the year",
+						Placeholder: "years of experience",
 						Type:        "text",
 						SubType:     "number",
 					},
 					{
 						DisplayName: "Maximum Experience",
 						Name:        "maxExperience",
-						Placeholder: "Write only the year",
+						Placeholder: "years of experience",
 						Type:        "text",
 						SubType:     "number",
 					},
@@ -120,7 +120,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 			}
 			for _, jobpost := range jobposts {
 				attachment := &model.SlackAttachment{
-					Text: "Jobpost:" + jobpost.Details + "\nCreatedAt:" + jobpost.CreatedAt.Format(time.ANSIC),
+					Text: "Jobpost: " + jobpost.Details + "\nCreatedAt: " + jobpost.CreatedAt.Format(time.ANSIC),
 					Actions: []*model.PostAction{
 						{
 							Integration: &model.PostActionIntegration{
@@ -131,7 +131,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 								},
 							},
 							Type: model.POST_ACTION_TYPE_BUTTON,
-							Name: "Fetch Jobpost",
+							Name: "Fetch Applicants",
 						},
 					},
 				}

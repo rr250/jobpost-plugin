@@ -191,7 +191,7 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 				{
 					DisplayName: "Experience",
 					Name:        "experience",
-					Placeholder: "Write only the year",
+					Placeholder: "years of experience",
 					Type:        "text",
 					SubType:     "number",
 					Optional:    !submision["experience"].(bool),
@@ -229,6 +229,13 @@ func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 			UserId:    request.UserId,
 			ChannelId: request.ChannelId,
 			Message:   err.(string),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+	} else {
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   "Successfully Applied",
 		}
 		p.API.SendEphemeralPost(request.UserId, postModel)
 	}
@@ -291,7 +298,7 @@ func (p *Plugin) downloadJobPostByID(w http.ResponseWriter, req *http.Request) {
 	if err == nil {
 		buf := bytes.NewBuffer(nil)
 		writer := csv.NewWriter(buf)
-		err8 := writer.Write([]string{"UserID", "Name", "Email", "Resume", "Experience", "Reason", "FilledAt"})
+		err8 := writer.Write([]string{"Name", "Email", "Resume", "Experience", "Reason", "Applied At"})
 		if err8 != nil {
 			p.API.LogError("Cannot write to file", err)
 			postModel := &model.Post{
@@ -302,7 +309,7 @@ func (p *Plugin) downloadJobPostByID(w http.ResponseWriter, req *http.Request) {
 			p.API.SendEphemeralPost(request.UserId, postModel)
 		}
 		for _, jobpostResponse := range jobpost.JobpostResponses {
-			jobpostResponseCsv := []string{jobpostResponse.UserID, jobpostResponse.Name, jobpostResponse.Email, jobpostResponse.Resume, strconv.Itoa(jobpostResponse.Experience), jobpostResponse.Reason, jobpostResponse.FilledAt.Local().Format(time.RFC3339Nano)}
+			jobpostResponseCsv := []string{jobpostResponse.Name, jobpostResponse.Email, jobpostResponse.Resume, strconv.Itoa(jobpostResponse.Experience), jobpostResponse.Reason, jobpostResponse.FilledAt.Local().Format(time.RFC3339Nano)}
 			err1 := writer.Write(jobpostResponseCsv)
 			if err1 != nil {
 				p.API.LogError("Cannot write to file %s", err1)
