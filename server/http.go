@@ -40,16 +40,16 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 	position := request.Submission["position"]
 	description := request.Submission["description"]
 	skills := request.Submission["skills"]
-	minExperience := request.Submission["minExperience"]
-	maxExperience := request.Submission["maxExperience"]
+	minExperience, _ := request.Submission["minExperience"].(float64)
+	maxExperience, _ := request.Submission["maxExperience"].(float64)
 	location := request.Submission["location"]
 	anonymous := request.Submission["anonymous"]
 	companyStr := company.(string)
 	positionStr := position.(string)
 	descriptionStr := description.(string)
 	skillsStr := skills.(string)
-	minExperienceStr := strconv.Itoa(int(minExperience.(float64)))
-	maxExperienceStr := strconv.Itoa(int(maxExperience.(float64)))
+	minExperienceStr := strconv.Itoa(int(minExperience))
+	maxExperienceStr := strconv.Itoa(int(maxExperience))
 	locationStr := location.(string)
 	var userID string
 	if anonymous.(bool) {
@@ -109,8 +109,8 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 		Position:      positionStr,
 		Description:   descriptionStr,
 		Skills:        skillsStr,
-		MinExperience: int(minExperience.(float64)),
-		MaxExperience: int(maxExperience.(float64)),
+		MinExperience: int(minExperience),
+		MaxExperience: int(maxExperience),
 		Location:      locationStr,
 		ExperienceReq: request.Submission["experience"].(bool),
 	}
@@ -147,6 +147,12 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 	} else {
 		userFullName = user.FirstName + " " + user.LastName
 		userEmail = user.Email
+	}
+	var experienceStr string
+	if submision["experience"].(bool) {
+		experienceStr = "Experience needed by recruiter(ignore the optional tag). Leaving it empty will take 0 year of experience."
+	} else {
+		experienceStr = "Leaving it empty will take 0 year of experience."
 	}
 	dialogRequest := model.OpenDialogRequest{
 		TriggerId: request.TriggerId,
@@ -191,10 +197,11 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 				{
 					DisplayName: "Experience",
 					Name:        "experience",
-					Placeholder: "years of experience",
+					Placeholder: "years of experience(leave it empty for 0 year)",
 					Type:        "text",
 					SubType:     "number",
-					Optional:    !submision["experience"].(bool),
+					Optional:    true,
+					HelpText:    experienceStr,
 				},
 			},
 		},

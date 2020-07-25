@@ -51,16 +51,20 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 					{
 						DisplayName: "Minimum Experience",
 						Name:        "minExperience",
-						Placeholder: "years of experience",
+						Placeholder: "years of experience(leave it empty for 0 year)",
 						Type:        "text",
 						SubType:     "number",
+						Optional:    true,
+						HelpText:    "Ignore the optional tag. Leaving it empty will take 0 year of experience.",
 					},
 					{
 						DisplayName: "Maximum Experience",
 						Name:        "maxExperience",
-						Placeholder: "years of experience",
+						Placeholder: "years of experience(leave it empty for 0 year)",
 						Type:        "text",
 						SubType:     "number",
+						Optional:    true,
+						HelpText:    "Ignore the optional tag. Leaving it empty will take 0 year of experience.",
 					},
 					{
 						DisplayName: "Location",
