@@ -87,7 +87,7 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 
 	sheetCreate := &sheets.Spreadsheet{
 		Properties: &sheets.SpreadsheetProperties{
-			Title: companyStr + " - " + positionStr,
+			Title: companyStr + " - " + positionStr + " - " + jobpostID,
 		},
 	}
 	sheet, err3 := p.sheetsService.Spreadsheets.Create(sheetCreate).Do()
@@ -171,7 +171,7 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 	postModel := &model.Post{
 		UserId:    p.botUserID,
 		ChannelId: channel.Id,
-		Message:   fmt.Sprintf("Jobpost created: " + companyStr + " - " + positionStr + "\n" + sheet.SpreadsheetUrl),
+		Message:   fmt.Sprintf("Jobpost created: " + jobpost.Company + " - " + jobpost.Position + "\nCreatedAt: " + jobpost.CreatedAt.Format(time.ANSIC) + "\nTrack the responses through this sheet:-\n" + sheet.SpreadsheetUrl),
 	}
 	_, err10 := p.API.CreatePost(postModel)
 	if err10 != nil {

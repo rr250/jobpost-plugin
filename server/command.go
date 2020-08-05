@@ -124,7 +124,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 			}
 			for _, jobpost := range jobposts {
 				attachment := &model.SlackAttachment{
-					Text: "Jobpost: " + jobpost.Details + "\nCreatedAt: " + jobpost.CreatedAt.Format(time.ANSIC),
+					Text: "Jobpost: " + jobpost.Details + "\nCreatedAt: " + jobpost.CreatedAt.Format(time.ANSIC) + "\nResponse Sheet: " + jobpost.SheetURL,
 					Actions: []*model.PostAction{
 						{
 							Integration: &model.PostActionIntegration{
