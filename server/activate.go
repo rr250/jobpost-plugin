@@ -31,6 +31,7 @@ func (p *Plugin) OnActivate() error {
 	p.botUserID = botUserID
 	p.router = p.InitAPI()
 	p.driveService, p.sheetsService = p.InitGoogleServices()
+	p.UserSubscribe()
 	return nil
 }
 
