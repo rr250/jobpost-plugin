@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mattermost/mattermost-server/v5/model"
+	"google.golang.org/api/sheets/v4"
 )
 
 type Jobpost struct {
@@ -71,6 +72,7 @@ func (p *Plugin) addJobpost(jobpost Jobpost) interface{} {
 		JobpostID: jobpost.ID,
 		Details:   jobpost.Company + " - " + jobpost.Position,
 		CreatedAt: jobpost.CreatedAt,
+		SheetURL:  jobpost.SheetURL,
 	}
 	var jobposts []JobPerUser
 	if bytes != nil {
@@ -106,6 +108,23 @@ func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostRespon
 		return fmt.Sprintf("Experience is not matching. Please apply to other jobs.")
 	}
 	jobpost.JobpostResponses = append(jobpost.JobpostResponses, jobpostResponse)
+	readRange := "Sheet1!A:Z"
+	valueRange := &sheets.ValueRange{
+		Values: [][]interface{}{
+			{
+				jobpostResponse.Name,
+				jobpostResponse.Email,
+				jobpostResponse.Resume,
+				jobpostResponse.Experience,
+				jobpostResponse.Reason,
+				jobpostResponse.FilledAt,
+			},
+		},
+	}
+	_, err7 := p.sheetsService.Spreadsheets.Values.Append(jobpost.SheetID, readRange, valueRange).ValueInputOption("USER_ENTERED").Do()
+	if err7 != nil {
+		return fmt.Sprintf("Unable to append data from sheet: %v", err7)
+	}
 	jobpostJSON, err3 := json.Marshal(jobpost)
 	if err3 != nil {
 		p.API.LogError("failed to marshal Jobpost %s", jobpost.ID)

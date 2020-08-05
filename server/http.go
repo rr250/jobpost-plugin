@@ -85,24 +85,6 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 		},
 	}
 
-	_, err5 := p.API.CreatePost(postModel1)
-	if err5 != nil {
-		p.API.LogError("failed to create post", err5)
-		postModel := &model.Post{
-			UserId:    request.UserId,
-			ChannelId: request.ChannelId,
-			Message:   fmt.Sprintf("failed to create post %s", err5),
-		}
-		p.API.SendEphemeralPost(request.UserId, postModel)
-	} else {
-		postModel := &model.Post{
-			UserId:    request.UserId,
-			ChannelId: request.ChannelId,
-			Message:   "Jobpost created. See all your jobposts by command `/jobpost list`",
-		}
-		p.API.SendEphemeralPost(request.UserId, postModel)
-	}
-
 	sheetCreate := &sheets.Spreadsheet{
 		Properties: &sheets.SpreadsheetProperties{
 			Title: companyStr + " - " + positionStr,
@@ -138,19 +120,7 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 	if err8 != nil {
 		log.Fatalf("Unable to change permission %v", err8)
 	}
-	channel, err9 := p.API.GetDirectChannel(request.UserId, p.botUserID)
-	if err9 != nil {
-		p.API.LogError("failed to get channel", err9)
-	}
-	postModel := &model.Post{
-		UserId:    p.botUserID,
-		ChannelId: channel.Id,
-		Message:   fmt.Sprintf("Jobpost created: " + companyStr + " - " + positionStr + "\n" + sheet.SpreadsheetUrl),
-	}
-	_, err10 := p.API.CreatePost(postModel)
-	if err10 != nil {
-		p.API.LogError("failed to create post", err10)
-	}
+
 	jobpost := Jobpost{
 		ID:            jobpostID,
 		CreatedBy:     request.UserId,
@@ -174,6 +144,38 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 			Message:   err6.(string),
 		}
 		p.API.SendEphemeralPost(request.UserId, postModel)
+	}
+
+	_, err5 := p.API.CreatePost(postModel1)
+	if err5 != nil {
+		p.API.LogError("failed to create post", err5)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("failed to create post %s", err5),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+	} else {
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   "Jobpost created. See all your jobposts by command `/jobpost list`",
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+	}
+
+	channel, err9 := p.API.GetDirectChannel(request.UserId, p.botUserID)
+	if err9 != nil {
+		p.API.LogError("failed to get channel", err9)
+	}
+	postModel := &model.Post{
+		UserId:    p.botUserID,
+		ChannelId: channel.Id,
+		Message:   fmt.Sprintf("Jobpost created: " + companyStr + " - " + positionStr + "\n" + sheet.SpreadsheetUrl),
+	}
+	_, err10 := p.API.CreatePost(postModel)
+	if err10 != nil {
+		p.API.LogError("failed to create post", err10)
 	}
 
 	for i := jobpost.MinExperience; i <= jobpost.MaxExperience; i++ {
