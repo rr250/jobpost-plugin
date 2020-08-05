@@ -21,6 +21,8 @@ type Jobpost struct {
 	MaxExperience    int
 	Location         string
 	ExperienceReq    bool
+	SheetID          string
+	SheetURL         string
 	JobpostResponses []JobpostResponse
 }
 
@@ -38,6 +40,7 @@ type JobPerUser struct {
 	JobpostID string
 	Details   string
 	CreatedAt time.Time
+	SheetURL  string
 }
 
 type Subscriber struct {

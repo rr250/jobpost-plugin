@@ -13,6 +13,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/mattermost/mattermost-server/v5/plugin"
+	"google.golang.org/api/drive/v3"
+	"google.golang.org/api/sheets/v4"
 )
 
 func (p *Plugin) InitAPI() *mux.Router {
@@ -101,6 +103,54 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 		p.API.SendEphemeralPost(request.UserId, postModel)
 	}
 
+	sheetCreate := &sheets.Spreadsheet{
+		Properties: &sheets.SpreadsheetProperties{
+			Title: companyStr + " - " + positionStr,
+		},
+	}
+	sheet, err3 := p.sheetsService.Spreadsheets.Create(sheetCreate).Do()
+	if err3 != nil {
+		log.Fatalf("Unable to create sheet: %v", err3)
+	}
+	log.Println(sheet)
+	readRange := "Sheet1!A:Z"
+	valueRange := &sheets.ValueRange{
+		Values: [][]interface{}{
+			{
+				"Name",
+				"Email",
+				"Resume",
+				"Experience",
+				"Reason",
+				"FilledAt",
+			},
+		},
+	}
+	_, err7 := p.sheetsService.Spreadsheets.Values.Append(sheet.SpreadsheetId, readRange, valueRange).ValueInputOption("USER_ENTERED").Do()
+	if err7 != nil {
+		log.Fatalf("Unable to append data from sheet: %v", err7)
+	}
+	permission := &drive.Permission{
+		Type: "anyone",
+		Role: "reader",
+	}
+	_, err8 := p.driveService.Permissions.Create(sheet.SpreadsheetId, permission).Do()
+	if err8 != nil {
+		log.Fatalf("Unable to change permission %v", err8)
+	}
+	channel, err9 := p.API.GetDirectChannel(request.UserId, p.botUserID)
+	if err9 != nil {
+		p.API.LogError("failed to get channel", err9)
+	}
+	postModel := &model.Post{
+		UserId:    p.botUserID,
+		ChannelId: channel.Id,
+		Message:   fmt.Sprintf("Jobpost created: " + companyStr + " - " + positionStr + "\n" + sheet.SpreadsheetUrl),
+	}
+	_, err10 := p.API.CreatePost(postModel)
+	if err10 != nil {
+		p.API.LogError("failed to create post", err10)
+	}
 	jobpost := Jobpost{
 		ID:            jobpostID,
 		CreatedBy:     request.UserId,
@@ -113,6 +163,8 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 		MaxExperience: int(maxExperience),
 		Location:      locationStr,
 		ExperienceReq: request.Submission["experience"].(bool),
+		SheetID:       sheet.SpreadsheetId,
+		SheetURL:      sheet.SpreadsheetUrl,
 	}
 	err6 := p.addJobpost(jobpost)
 	if err6 != nil {

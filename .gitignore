@@ -12,3 +12,7 @@ dist/com.github.rr250.jobpost-plugin/server/dist/plugin-windows-amd64.exe
 server/dist/plugin-darwin-amd64
 server/dist/plugin-linux-amd64
 server/dist/plugin-windows-amd64.exe
+credentials/credentials.json
+credentials/token.json
+assets/credentials/credentials.json
+assets/credentials/token.json
