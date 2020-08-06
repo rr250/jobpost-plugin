@@ -42,17 +42,49 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 	position := request.Submission["position"]
 	description := request.Submission["description"]
 	skills := request.Submission["skills"]
-	minExperience, _ := request.Submission["minExperience"].(float64)
-	maxExperience, _ := request.Submission["maxExperience"].(float64)
+	minExperience := request.Submission["minExperience"]
+	maxExperience := request.Submission["maxExperience"]
 	location := request.Submission["location"]
 	anonymous := request.Submission["anonymous"]
 	companyStr := company.(string)
 	positionStr := position.(string)
 	descriptionStr := description.(string)
 	skillsStr := skills.(string)
-	minExperienceStr := strconv.Itoa(int(minExperience))
-	maxExperienceStr := strconv.Itoa(int(maxExperience))
+	minExperienceStr := minExperience.(string)
+	maxExperienceStr := maxExperience.(string)
 	locationStr := location.(string)
+	minExperienceInt, err11 := strconv.Atoi(minExperienceStr)
+	if err11 != nil {
+		p.API.LogError("Not an integer", err11)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("MinExperience is not an integer %s", err11),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
+	maxExperienceInt, err12 := strconv.Atoi(maxExperienceStr)
+	if err12 != nil {
+		p.API.LogError("Not an integer", err12)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("MaxExperience is not an integer %s", err12),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
+	if minExperienceInt < 0 || maxExperienceInt < 0 || maxExperienceInt < minExperienceInt {
+		p.API.LogError("Less than zero")
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("Experience less than zero or maxExperience less than minExperience"),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
 	var userID string
 	if anonymous.(bool) {
 		userID = p.botUserID
@@ -93,6 +125,13 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 	sheet, err3 := p.sheetsService.Spreadsheets.Create(sheetCreate).Do()
 	if err3 != nil {
 		log.Fatalf("Unable to create sheet: %v", err3)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("Unable to create sheet: %v", err3),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
 	}
 	log.Println(sheet)
 	readRange := "Sheet1!A:Z"
@@ -111,6 +150,13 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 	_, err7 := p.sheetsService.Spreadsheets.Values.Append(sheet.SpreadsheetId, readRange, valueRange).ValueInputOption("USER_ENTERED").Do()
 	if err7 != nil {
 		log.Fatalf("Unable to append data from sheet: %v", err7)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("Unable to append data from sheet: %v", err7),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
 	}
 	permission := &drive.Permission{
 		Type: "anyone",
@@ -118,7 +164,13 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 	}
 	_, err8 := p.driveService.Permissions.Create(sheet.SpreadsheetId, permission).Do()
 	if err8 != nil {
-		log.Fatalf("Unable to change permission %v", err8)
+		log.Fatalf("Unable to change drive permission %v", err8)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("Unable to change drive permission %v", err8),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
 	}
 
 	jobpost := Jobpost{
@@ -129,8 +181,8 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 		Position:      positionStr,
 		Description:   descriptionStr,
 		Skills:        skillsStr,
-		MinExperience: int(minExperience),
-		MaxExperience: int(maxExperience),
+		MinExperience: minExperienceInt,
+		MaxExperience: maxExperienceInt,
 		Location:      locationStr,
 		ExperienceReq: request.Submission["experience"].(bool),
 		SheetID:       sheet.SpreadsheetId,
@@ -144,6 +196,7 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 			Message:   err6.(string),
 		}
 		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
 	}
 
 	_, err5 := p.API.CreatePost(postModel1)
@@ -155,6 +208,7 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 			Message:   fmt.Sprintf("failed to create post %s", err5),
 		}
 		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
 	} else {
 		postModel := &model.Post{
 			UserId:    request.UserId,
@@ -201,12 +255,6 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 	} else {
 		userFullName = user.FirstName + " " + user.LastName
 		userEmail = user.Email
-	}
-	var experienceStr string
-	if submision["experience"].(bool) {
-		experienceStr = "Experience needed by recruiter(ignore the optional tag). Leaving it empty will take 0 year of experience."
-	} else {
-		experienceStr = "Leaving it empty will take 0 year of experience."
 	}
 	userResume, err1 := p.getResume(request.UserId)
 	resumeStr := " "
@@ -256,11 +304,10 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 				{
 					DisplayName: "Experience",
 					Name:        "experience",
-					Placeholder: "years of experience(leave it empty for 0 year)",
+					Placeholder: "years of experience",
 					Type:        "text",
-					SubType:     "number",
-					Optional:    true,
-					HelpText:    experienceStr,
+					SubType:     "text",
+					Optional:    !submision["experience"].(bool),
 				},
 			},
 		},
@@ -279,14 +326,23 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 
 	request := model.SubmitDialogRequestFromJson(req.Body)
-	experience, _ := request.Submission["experience"].(float64)
+	experience := request.Submission["experience"].(string)
+	experienceFlt, err1 := strconv.ParseFloat(experience, 64)
+	if err1 != nil {
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("Experience format is not correct %s", err1),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+	}
 	jobpostResponse := JobpostResponse{
 		UserID:     request.UserId,
 		Name:       request.Submission["name"].(string),
 		Email:      request.Submission["email"].(string),
 		Resume:     request.Submission["resume"].(string),
 		Reason:     request.Submission["reason"].(string),
-		Experience: int(experience),
+		Experience: experienceFlt,
 		FilledAt:   time.Now(),
 	}
 	err := p.addJobpostResponse(request.State, jobpostResponse)
@@ -324,7 +380,7 @@ func (p *Plugin) getJobPostByID(w http.ResponseWriter, req *http.Request) {
 		}
 		for _, jobpostResponse := range jobpost.JobpostResponses {
 			attachment := &model.SlackAttachment{
-				Text: "Name: " + jobpostResponse.Name + "\nEmail: " + jobpostResponse.Email + "\nResume: " + jobpostResponse.Resume + "\nReason:" + jobpostResponse.Reason,
+				Text: "Name: " + jobpostResponse.Name + "\nEmail: " + jobpostResponse.Email + "\nResume: " + jobpostResponse.Resume + "\nExperience: " + fmt.Sprintf("%.1f years", jobpostResponse.Experience) + "\nReason:" + jobpostResponse.Reason,
 			}
 			postModel.Props["attachments"] = append(postModel.Props["attachments"].([]*model.SlackAttachment), attachment)
 		}
@@ -375,7 +431,7 @@ func (p *Plugin) downloadJobPostByID(w http.ResponseWriter, req *http.Request) {
 			p.API.SendEphemeralPost(request.UserId, postModel)
 		}
 		for _, jobpostResponse := range jobpost.JobpostResponses {
-			jobpostResponseCsv := []string{jobpostResponse.Name, jobpostResponse.Email, jobpostResponse.Resume, strconv.Itoa(jobpostResponse.Experience), jobpostResponse.Reason, jobpostResponse.FilledAt.Local().Format(time.RFC3339Nano)}
+			jobpostResponseCsv := []string{jobpostResponse.Name, jobpostResponse.Email, jobpostResponse.Resume, fmt.Sprintf("%.1f years", jobpostResponse.Experience), jobpostResponse.Reason, jobpostResponse.FilledAt.Local().Format(time.RFC3339Nano)}
 			err1 := writer.Write(jobpostResponseCsv)
 			if err1 != nil {
 				p.API.LogError("Cannot write to file %s", err1)

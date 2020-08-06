@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -33,7 +34,7 @@ type JobpostResponse struct {
 	Email      string
 	Resume     string
 	Reason     string
-	Experience int
+	Experience float64
 	FilledAt   time.Time
 }
 
@@ -107,7 +108,7 @@ func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostRespon
 		p.API.LogError("failed to unmarshal", err2)
 		return fmt.Sprintf("failed to unmarshal  %s", err2)
 	}
-	if jobpost.ExperienceReq && ((jobpost.MinExperience-1) > jobpostResponse.Experience || (jobpost.MaxExperience+1) < jobpostResponse.Experience) {
+	if jobpost.ExperienceReq && ((jobpost.MinExperience-1) > int(math.Ceil(jobpostResponse.Experience)) || (jobpost.MaxExperience+1) < int(math.Ceil(jobpostResponse.Experience))) {
 		p.API.LogError("Experience is not matching. Please apply to other jobs.")
 		return fmt.Sprintf("Experience is not matching. Please apply to other jobs.")
 	}
@@ -119,7 +120,7 @@ func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostRespon
 				jobpostResponse.Name,
 				jobpostResponse.Email,
 				jobpostResponse.Resume,
-				jobpostResponse.Experience,
+				fmt.Sprintf("%.1f years", jobpostResponse.Experience),
 				jobpostResponse.Reason,
 				jobpostResponse.FilledAt,
 			},
