@@ -48,6 +48,10 @@ type Subscriber struct {
 	UserID string
 }
 
+type UserResume struct {
+	Resume string
+}
+
 func (p *Plugin) addJobpost(jobpost Jobpost) interface{} {
 	p.API.LogInfo(jobpost.CreatedBy)
 	jobpostJSON, err1 := json.Marshal(jobpost)
@@ -261,4 +265,48 @@ func (p *Plugin) sendToSubscribers(postModel *model.Post, year int) {
 		}
 	}
 	return
+}
+
+func (p *Plugin) saveResume(userID string, resume string) interface{} {
+	bytes, err2 := p.API.KVGet("resume-" + userID)
+	p.API.LogInfo(string(bytes))
+	if err2 != nil {
+		p.API.LogError("failed KVGet %s", err2)
+		return fmt.Sprintf("failed KVGet %s", err2)
+	}
+	var userResume UserResume
+	if bytes != nil {
+		if err3 := json.Unmarshal(bytes, &userResume); err3 != nil {
+			return fmt.Sprintf("failed to unmarshal  %s", err3)
+		}
+		userResume.Resume = resume
+	} else {
+		userResume.Resume = resume
+	}
+	userResumeJSON, err4 := json.Marshal(userResume)
+	if err4 != nil {
+		p.API.LogError("failed to marshal Jobposts  %s", userResume)
+		return fmt.Sprintf("failed to marshal Jobposts  %s", userResume)
+	}
+	p.API.KVSet("resume-"+userID, userResumeJSON)
+	return nil
+}
+
+func (p *Plugin) getResume(userID string) (UserResume, interface{}) {
+	var userResume UserResume
+	bytes, err2 := p.API.KVGet("resume-" + userID)
+	p.API.LogInfo(string(bytes))
+	if err2 != nil {
+		p.API.LogError("failed KVGet %s", err2)
+		return userResume, fmt.Sprintf("failed KVGet %s", err2)
+	}
+
+	if bytes != nil {
+		if err3 := json.Unmarshal(bytes, &userResume); err3 != nil {
+			return userResume, fmt.Sprintf("failed to unmarshal  %s", err3)
+		}
+	} else {
+		return userResume, "No resume found"
+	}
+	return userResume, nil
 }

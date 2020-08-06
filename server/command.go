@@ -207,6 +207,40 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 				p.API.SendEphemeralPost(args.UserId, postModel)
 			}
 		}
+	} else if splitText := strings.Split(strings.Trim(command, " "), " "); splitText[1] == "resume" && splitText[2] == "save" {
+		err := p.saveResume(args.UserId, splitText[3])
+		if err != nil {
+			postModel := &model.Post{
+				UserId:    args.UserId,
+				ChannelId: args.ChannelId,
+				Message:   err.(string),
+			}
+			p.API.SendEphemeralPost(args.UserId, postModel)
+		} else {
+			postModel := &model.Post{
+				UserId:    args.UserId,
+				ChannelId: args.ChannelId,
+				Message:   "Resume saved",
+			}
+			p.API.SendEphemeralPost(args.UserId, postModel)
+		}
+	} else if splitText := strings.Split(strings.Trim(command, " "), " "); splitText[1] == "resume" && splitText[2] == "show" {
+		userResume, err := p.getResume(args.UserId)
+		if err != nil {
+			postModel := &model.Post{
+				UserId:    args.UserId,
+				ChannelId: args.ChannelId,
+				Message:   err.(string),
+			}
+			p.API.SendEphemeralPost(args.UserId, postModel)
+		} else {
+			postModel := &model.Post{
+				UserId:    args.UserId,
+				ChannelId: args.ChannelId,
+				Message:   "Resume: " + userResume.Resume,
+			}
+			p.API.SendEphemeralPost(args.UserId, postModel)
+		}
 	} else if strings.Trim(command, " ") == "/"+trigger+" help" {
 		postModel := &model.Post{
 			UserId:    args.UserId,

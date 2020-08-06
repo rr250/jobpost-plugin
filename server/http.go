@@ -208,6 +208,11 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 	} else {
 		experienceStr = "Leaving it empty will take 0 year of experience."
 	}
+	userResume, err1 := p.getResume(request.UserId)
+	resumeStr := " "
+	if err1 == nil {
+		resumeStr = userResume.Resume
+	}
 	dialogRequest := model.OpenDialogRequest{
 		TriggerId: request.TriggerId,
 		URL:       fmt.Sprintf("/plugins/%s/submit", manifest.ID),
@@ -237,7 +242,7 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 					HelpText:    "Put the URL of your resume. Please make sure that it is accessible. To make sure that it is accessible try opening it in incognito mode.",
 					Type:        "text",
 					SubType:     "text",
-					Default:     " ",
+					Default:     resumeStr,
 					Optional:    !submision["resume"].(bool),
 				},
 				{
