@@ -21,7 +21,7 @@ _**A Plugin that makes task of creating Jobposts in Scaler chat based on Matterm
    * Paste your credentials.json here
    * Run ```go get```
    * Run ```go run quickstart.go```
-   * It will prompt you to authorize access through a link which appear in command-line promt
+   * It will prompt you to authorize access through a link which will appear in command-line promt
    * Browse to the provided URL in your web browser
    * If you are not already logged into your Google account, you will be prompted to log in
    * Accept all
