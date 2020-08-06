@@ -241,7 +241,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 		postModel := &model.Post{
 			UserId:    args.UserId,
 			ChannelId: args.ChannelId,
-			Message:   "* `/jobpost` - opens up an [interactive dialog] to create a Jobpost \n* `/jobpost list` - displays a list of jobposts created by you \n* `/jobpost subscribe x years` - subscribes to jobposts which requires x years of experience where x is an integer \n* `/jobpost unsubscribe x years` - unsubscribes to jobposts which requires x years of experience where x is an integer",
+			Message:   "* `/jobpost` - opens up an [interactive dialog] to create a Jobpost \n* `/jobpost list` - displays a list of jobposts created by you \n* `/jobpost subscribe x years` - subscribes to jobposts which requires x years of experience where x is an integer \n* `/jobpost unsubscribe x years` - unsubscribes to jobposts which requires x years of experience where x is an integer \n* `/jobpost resume save linkUrl` - saves the resume link, linkUrl(e.g. https://drive.google.com/file/xyz) which can be prefetched the when you apply to a jobpost \n* `/jobpost resume show` - fetch the resume you have saved",
 		}
 		p.API.SendEphemeralPost(args.UserId, postModel)
 	}
