@@ -15,8 +15,8 @@ _**A Plugin that makes task of creating Jobposts in Scaler chat based on Matterm
 1) Clone the repository
 
 2) Enable the Google APIs:- 
- + Visit https://developers.google.com/drive/api/v3/quickstart/go and click Enable Drive Api button and get credentials.json
- + Clone https://github.com/rr250/google-apis
+   * Visit https://developers.google.com/drive/api/v3/quickstart/go and click Enable Drive Api button and get credentials.json
+   * Clone https://github.com/rr250/google-apis
  + * Open google-apis repo
  + * Paste your credentials.json here
  + * Run ```go get```
