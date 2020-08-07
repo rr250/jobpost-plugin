@@ -221,7 +221,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 			p.API.SendEphemeralPost(args.UserId, postModel)
 		}
 	} else if splitText := strings.Split(strings.Trim(command, " "), " "); splitText[1] == "resume" && splitText[2] == "show" {
-		userResume, err := p.getResume(args.UserId)
+		userDetails, err := p.getResume(args.UserId)
 		if err != nil {
 			postModel := &model.Post{
 				UserId:    args.UserId,
@@ -233,7 +233,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 			postModel := &model.Post{
 				UserId:    args.UserId,
 				ChannelId: args.ChannelId,
-				Message:   "Resume: " + userResume.Resume,
+				Message:   "Resume: " + userDetails.Resume,
 			}
 			p.API.SendEphemeralPost(args.UserId, postModel)
 		}

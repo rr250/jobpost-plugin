@@ -256,10 +256,10 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 		userFullName = user.FirstName + " " + user.LastName
 		userEmail = user.Email
 	}
-	userResume, err1 := p.getResume(request.UserId)
+	userDetails, err1 := p.getResume(request.UserId)
 	resumeStr := " "
 	if err1 == nil {
-		resumeStr = userResume.Resume
+		resumeStr = userDetails.Resume
 	}
 	dialogRequest := model.OpenDialogRequest{
 		TriggerId: request.TriggerId,
@@ -345,7 +345,7 @@ func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 		Experience: experienceFlt,
 		FilledAt:   time.Now(),
 	}
-	err := p.addJobpostResponse(request.State, jobpostResponse)
+	jobpost, err := p.addJobpostResponse(request.State, jobpostResponse)
 	if err != nil {
 		postModel := &model.Post{
 			UserId:    request.UserId,
@@ -354,12 +354,16 @@ func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 		}
 		p.API.SendEphemeralPost(request.UserId, postModel)
 	} else {
+		channel, err9 := p.API.GetDirectChannel(request.UserId, p.botUserID)
+		if err9 != nil {
+			p.API.LogError("failed to get channel", err9)
+		}
 		postModel := &model.Post{
 			UserId:    request.UserId,
-			ChannelId: request.ChannelId,
-			Message:   "Successfully Applied",
+			ChannelId: channel.Id,
+			Message:   "Successfully Applied to " + jobpost.Company + " - " + jobpost.Position + " - " + jobpost.ID,
 		}
-		p.API.SendEphemeralPost(request.UserId, postModel)
+		p.API.CreatePost(postModel)
 	}
 
 }

@@ -49,7 +49,7 @@ type Subscriber struct {
 	UserID string
 }
 
-type UserResume struct {
+type UserDetails struct {
 	Resume string
 }
 
@@ -97,20 +97,20 @@ func (p *Plugin) addJobpost(jobpost Jobpost) interface{} {
 	return nil
 }
 
-func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostResponse) interface{} {
+func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostResponse) (Jobpost, interface{}) {
+	var jobpost Jobpost
 	bytes, err1 := p.API.KVGet(postID)
 	if err1 != nil {
 		p.API.LogError("failed KVGet %s", err1)
-		return fmt.Sprintf("failed KVGet %s", err1)
+		return jobpost, fmt.Sprintf("failed KVGet %s", err1)
 	}
-	var jobpost Jobpost
 	if err2 := json.Unmarshal(bytes, &jobpost); err2 != nil {
 		p.API.LogError("failed to unmarshal", err2)
-		return fmt.Sprintf("failed to unmarshal  %s", err2)
+		return jobpost, fmt.Sprintf("failed to unmarshal  %s", err2)
 	}
 	if jobpost.ExperienceReq && ((jobpost.MinExperience-1) > int(math.Ceil(jobpostResponse.Experience)) || (jobpost.MaxExperience+1) < int(math.Ceil(jobpostResponse.Experience))) {
 		p.API.LogError("Experience is not matching. Please apply to other jobs.")
-		return fmt.Sprintf("Experience is not matching. Please apply to other jobs.")
+		return jobpost, fmt.Sprintf("Experience is not matching. Please apply to other jobs.")
 	}
 	jobpost.JobpostResponses = append(jobpost.JobpostResponses, jobpostResponse)
 	readRange := "Sheet1!A:Z"
@@ -128,20 +128,20 @@ func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostRespon
 	}
 	_, err7 := p.sheetsService.Spreadsheets.Values.Append(jobpost.SheetID, readRange, valueRange).ValueInputOption("USER_ENTERED").Do()
 	if err7 != nil {
-		return fmt.Sprintf("Unable to append data from sheet: %v", err7)
+		return jobpost, fmt.Sprintf("Unable to append data from sheet: %v", err7)
 	}
 	jobpostJSON, err3 := json.Marshal(jobpost)
 	if err3 != nil {
 		p.API.LogError("failed to marshal Jobpost %s", jobpost.ID)
-		return fmt.Sprintf("failed to marshal Jobpost %s", jobpost.ID)
+		return jobpost, fmt.Sprintf("failed to marshal Jobpost %s", jobpost.ID)
 	}
 	p.API.LogInfo(string(jobpostJSON))
 	err5 := p.API.KVSet(jobpost.ID, jobpostJSON)
 	if err5 != nil {
 		p.API.LogError("failed KVSet %s", err5)
-		return fmt.Sprintf("failed KVSet %s", err5)
+		return jobpost, fmt.Sprintf("failed KVSet %s", err5)
 	}
-	return nil
+	return jobpost, nil
 }
 
 func (p *Plugin) getJobsPerUser(userID string) ([]JobPerUser, interface{}) {
@@ -275,39 +275,39 @@ func (p *Plugin) saveResume(userID string, resume string) interface{} {
 		p.API.LogError("failed KVGet %s", err2)
 		return fmt.Sprintf("failed KVGet %s", err2)
 	}
-	var userResume UserResume
+	var userDetails UserDetails
 	if bytes != nil {
-		if err3 := json.Unmarshal(bytes, &userResume); err3 != nil {
+		if err3 := json.Unmarshal(bytes, &userDetails); err3 != nil {
 			return fmt.Sprintf("failed to unmarshal  %s", err3)
 		}
-		userResume.Resume = resume
+		userDetails.Resume = resume
 	} else {
-		userResume.Resume = resume
+		userDetails.Resume = resume
 	}
-	userResumeJSON, err4 := json.Marshal(userResume)
+	userDetailsJSON, err4 := json.Marshal(userDetails)
 	if err4 != nil {
-		p.API.LogError("failed to marshal Jobposts  %s", userResume)
-		return fmt.Sprintf("failed to marshal Jobposts  %s", userResume)
+		p.API.LogError("failed to marshal Jobposts  %s", userDetails)
+		return fmt.Sprintf("failed to marshal Jobposts  %s", userDetails)
 	}
-	p.API.KVSet("resume-"+userID, userResumeJSON)
+	p.API.KVSet("resume-"+userID, userDetailsJSON)
 	return nil
 }
 
-func (p *Plugin) getResume(userID string) (UserResume, interface{}) {
-	var userResume UserResume
+func (p *Plugin) getResume(userID string) (UserDetails, interface{}) {
+	var userDetails UserDetails
 	bytes, err2 := p.API.KVGet("resume-" + userID)
 	p.API.LogInfo(string(bytes))
 	if err2 != nil {
 		p.API.LogError("failed KVGet %s", err2)
-		return userResume, fmt.Sprintf("failed KVGet %s", err2)
+		return userDetails, fmt.Sprintf("failed KVGet %s", err2)
 	}
 
 	if bytes != nil {
-		if err3 := json.Unmarshal(bytes, &userResume); err3 != nil {
-			return userResume, fmt.Sprintf("failed to unmarshal  %s", err3)
+		if err3 := json.Unmarshal(bytes, &userDetails); err3 != nil {
+			return userDetails, fmt.Sprintf("failed to unmarshal  %s", err3)
 		}
 	} else {
-		return userResume, "No resume found"
+		return userDetails, "No resume found"
 	}
-	return userResume, nil
+	return userDetails, nil
 }
