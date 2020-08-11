@@ -359,11 +359,14 @@ func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 			p.API.LogError("failed to get channel", err9)
 		}
 		postModel := &model.Post{
-			UserId:    request.UserId,
+			UserId:    p.botUserID,
 			ChannelId: channel.Id,
 			Message:   "Successfully Applied to " + jobpost.Company + " - " + jobpost.Position + " - " + jobpost.ID,
 		}
+
 		p.API.CreatePost(postModel)
+		postModel.ChannelId = request.ChannelId
+		p.API.SendEphemeralPost(request.UserId, postModel)
 	}
 
 }
