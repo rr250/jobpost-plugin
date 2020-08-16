@@ -128,7 +128,7 @@ func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostRespon
 	}
 	_, err7 := p.sheetsService.Spreadsheets.Values.Append(jobpost.SheetID, readRange, valueRange).ValueInputOption("USER_ENTERED").Do()
 	if err7 != nil {
-		return jobpost, fmt.Sprintf("Unable to append data from sheet: %v", err7)
+		return jobpost, fmt.Sprintf("Unable to append data to sheet: %v", err7)
 	}
 	jobpostJSON, err3 := json.Marshal(jobpost)
 	if err3 != nil {

@@ -302,11 +302,11 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 					Optional:    !submision["reason"].(bool),
 				},
 				{
-					DisplayName: "Experience",
+					DisplayName: "Years of Experience (Float values accepted e.g. for 1 year 6 months write 1.5)",
 					Name:        "experience",
-					Placeholder: "years of experience",
 					Type:        "text",
 					SubType:     "text",
+					Default:     "0",
 					Optional:    !submision["experience"].(bool),
 				},
 			},
