@@ -246,12 +246,6 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 	userEmail := "@gmail.com"
 	if err != nil {
 		p.API.LogError("failed to get user", err)
-		postModel := &model.Post{
-			UserId:    request.UserId,
-			ChannelId: request.ChannelId,
-			Message:   fmt.Sprintf("failed to get user %s", err),
-		}
-		p.API.SendEphemeralPost(request.UserId, postModel)
 	} else {
 		userFullName = user.FirstName + " " + user.LastName
 		userEmail = user.Email
@@ -335,6 +329,7 @@ func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 			Message:   fmt.Sprintf("Experience format is not correct %s", err1),
 		}
 		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
 	}
 	jobpostResponse := JobpostResponse{
 		UserID:     request.UserId,
@@ -357,6 +352,7 @@ func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 		channel, err9 := p.API.GetDirectChannel(request.UserId, p.botUserID)
 		if err9 != nil {
 			p.API.LogError("failed to get channel", err9)
+			return
 		}
 		postModel := &model.Post{
 			UserId:    p.botUserID,
@@ -436,6 +432,7 @@ func (p *Plugin) downloadJobPostByID(w http.ResponseWriter, req *http.Request) {
 				Message:   fmt.Sprintf("Cannot write to file %s", err),
 			}
 			p.API.SendEphemeralPost(request.UserId, postModel)
+			return
 		}
 		for _, jobpostResponse := range jobpost.JobpostResponses {
 			jobpostResponseCsv := []string{jobpostResponse.Name, jobpostResponse.Email, jobpostResponse.Resume, fmt.Sprintf("%.1f years", jobpostResponse.Experience), jobpostResponse.Reason, jobpostResponse.FilledAt.Local().Format(time.RFC3339Nano)}
@@ -448,6 +445,7 @@ func (p *Plugin) downloadJobPostByID(w http.ResponseWriter, req *http.Request) {
 					Message:   fmt.Sprintf("Cannot write to file %s", err1),
 				}
 				p.API.SendEphemeralPost(request.UserId, postModel)
+				return
 			}
 		}
 		writer.Flush()
@@ -462,6 +460,7 @@ func (p *Plugin) downloadJobPostByID(w http.ResponseWriter, req *http.Request) {
 				Message:   fmt.Sprintf("failed to get channel  %s", err7),
 			}
 			p.API.SendEphemeralPost(request.UserId, postModel)
+			return
 		}
 		channelID = channel.Id
 		fileInfo, err3 := p.API.UploadFile(data, channelID, jobpost.Company+"-"+jobpost.Position+"-"+strconv.Itoa(int(time.Now().Unix()))+".csv")
@@ -473,6 +472,7 @@ func (p *Plugin) downloadJobPostByID(w http.ResponseWriter, req *http.Request) {
 				Message:   fmt.Sprintf("Cannot upload file  %s", err3),
 			}
 			p.API.SendEphemeralPost(request.UserId, postModel)
+			return
 		}
 		postModel := &model.Post{
 			UserId:    request.UserId,
