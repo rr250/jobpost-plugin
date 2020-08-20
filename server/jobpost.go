@@ -22,20 +22,21 @@ type Jobpost struct {
 	MinExperience    int
 	MaxExperience    int
 	Location         string
-	ExperienceReq    bool
 	SheetID          string
 	SheetURL         string
+	PostID           string
 	JobpostResponses []JobpostResponse
 }
 
 type JobpostResponse struct {
-	UserID     string
-	Name       string
-	Email      string
-	Resume     string
-	Reason     string
-	Experience float64
-	FilledAt   time.Time
+	UserID       string
+	Name         string
+	Email        string
+	Resume       string
+	Reason       string
+	Experience   float64
+	NoticePeriod string
+	FilledAt     time.Time
 }
 
 type JobPerUser struct {
@@ -108,7 +109,7 @@ func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostRespon
 		p.API.LogError("failed to unmarshal", err2)
 		return jobpost, fmt.Sprintf("failed to unmarshal  %s", err2)
 	}
-	if jobpost.ExperienceReq && ((jobpost.MinExperience-1) > int(math.Ceil(jobpostResponse.Experience)) || (jobpost.MaxExperience+1) < int(math.Ceil(jobpostResponse.Experience))) {
+	if (jobpost.MinExperience) > int(math.Ceil(jobpostResponse.Experience)) || (jobpost.MaxExperience) < int(math.Ceil(jobpostResponse.Experience)) {
 		p.API.LogError("Experience is not matching. Please apply to other jobs.")
 		return jobpost, fmt.Sprintf("Experience is not matching. Please apply to other jobs.")
 	}
@@ -123,6 +124,7 @@ func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostRespon
 				fmt.Sprintf("%.1f years", jobpostResponse.Experience),
 				jobpostResponse.Reason,
 				jobpostResponse.FilledAt,
+				jobpostResponse.NoticePeriod,
 			},
 		},
 	}

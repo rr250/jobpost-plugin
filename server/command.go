@@ -69,25 +69,6 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 						SubType:     "text",
 					},
 					{
-						DisplayName: "Please check the fields which you want to include in your jobpost form.",
-						Placeholder: "Resume",
-						Name:        "resume",
-						Type:        "bool",
-						Optional:    true,
-					},
-					{
-						Placeholder: "Experience",
-						Name:        "experience",
-						Type:        "bool",
-						Optional:    true,
-					},
-					{
-						Placeholder: "Reason on why is applicant interested",
-						Name:        "reason",
-						Type:        "bool",
-						Optional:    true,
-					},
-					{
 						DisplayName: "Post as Anonymous?",
 						Placeholder: "Yes, Post as anonymous",
 						Name:        "anonymous",
@@ -132,6 +113,17 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 							},
 							Type: model.POST_ACTION_TYPE_BUTTON,
 							Name: "Fetch Applicants",
+						},
+						{
+							Integration: &model.PostActionIntegration{
+								URL: fmt.Sprintf("/plugins/%s/editjobpostbyid", manifest.ID),
+								Context: model.StringInterface{
+									"action":    "editjobpostbyid",
+									"jobpostid": jobpost.JobpostID,
+								},
+							},
+							Type: model.POST_ACTION_TYPE_BUTTON,
+							Name: "Edit",
 						},
 					},
 				}

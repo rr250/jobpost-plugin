@@ -144,6 +144,7 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 				"Experience",
 				"Reason",
 				"FilledAt",
+				"NoticePeriod",
 			},
 		},
 	}
@@ -173,6 +174,18 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 		p.API.SendEphemeralPost(request.UserId, postModel)
 	}
 
+	post, err5 := p.API.CreatePost(postModel1)
+	if err5 != nil {
+		p.API.LogError("failed to create post", err5)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("failed to create post %s", err5),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
+
 	jobpost := Jobpost{
 		ID:            jobpostID,
 		CreatedBy:     request.UserId,
@@ -184,9 +197,9 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 		MinExperience: minExperienceInt,
 		MaxExperience: maxExperienceInt,
 		Location:      locationStr,
-		ExperienceReq: request.Submission["experience"].(bool),
 		SheetID:       sheet.SpreadsheetId,
 		SheetURL:      sheet.SpreadsheetUrl,
+		PostID:        post.Id,
 	}
 	err6 := p.addJobpost(jobpost)
 	if err6 != nil {
@@ -194,18 +207,6 @@ func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
 			UserId:    request.UserId,
 			ChannelId: request.ChannelId,
 			Message:   err6.(string),
-		}
-		p.API.SendEphemeralPost(request.UserId, postModel)
-		return
-	}
-
-	_, err5 := p.API.CreatePost(postModel1)
-	if err5 != nil {
-		p.API.LogError("failed to create post", err5)
-		postModel := &model.Post{
-			UserId:    request.UserId,
-			ChannelId: request.ChannelId,
-			Message:   fmt.Sprintf("failed to create post %s", err5),
 		}
 		p.API.SendEphemeralPost(request.UserId, postModel)
 		return
@@ -285,23 +286,24 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 					Type:        "text",
 					SubType:     "text",
 					Default:     resumeStr,
-					Optional:    !submision["resume"].(bool),
 				},
 				{
 					DisplayName: "Reason on why are you interested",
 					Name:        "reason",
 					Type:        "textarea",
 					SubType:     "text",
-					Default:     " ",
-					Optional:    !submision["reason"].(bool),
 				},
 				{
 					DisplayName: "Years of Experience (Float values accepted e.g. for 1 year 6 months write 1.5)",
 					Name:        "experience",
 					Type:        "text",
 					SubType:     "text",
-					Default:     "0",
-					Optional:    !submision["experience"].(bool),
+				},
+				{
+					DisplayName: "Are you serving a notice period? If yes, please specify the number of months.",
+					Name:        "noticePeriod",
+					Type:        "text",
+					SubType:     "text",
 				},
 			},
 		},
@@ -332,13 +334,14 @@ func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	jobpostResponse := JobpostResponse{
-		UserID:     request.UserId,
-		Name:       request.Submission["name"].(string),
-		Email:      request.Submission["email"].(string),
-		Resume:     request.Submission["resume"].(string),
-		Reason:     request.Submission["reason"].(string),
-		Experience: experienceFlt,
-		FilledAt:   time.Now(),
+		UserID:       request.UserId,
+		Name:         request.Submission["name"].(string),
+		Email:        request.Submission["email"].(string),
+		Resume:       request.Submission["resume"].(string),
+		Reason:       request.Submission["reason"].(string),
+		NoticePeriod: request.Submission["noticePeriod"].(string),
+		Experience:   experienceFlt,
+		FilledAt:     time.Now(),
 	}
 	jobpost, err := p.addJobpostResponse(request.State, jobpostResponse)
 	if err != nil {
