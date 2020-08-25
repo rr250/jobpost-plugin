@@ -18,7 +18,7 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 
 		dialogRequest := model.OpenDialogRequest{
 			TriggerId: args.TriggerId,
-			URL:       fmt.Sprintf("/plugins/%s/dialog", manifest.ID),
+			URL:       fmt.Sprintf("/plugins/%s/createjobpost", manifest.ID),
 			Dialog: model.Dialog{
 				Title:       "New Job Posting",
 				CallbackId:  model.NewId(),

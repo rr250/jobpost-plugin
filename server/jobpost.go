@@ -98,6 +98,22 @@ func (p *Plugin) addJobpost(jobpost Jobpost) interface{} {
 	return nil
 }
 
+func (p *Plugin) updateJobpost(jobpost Jobpost) interface{} {
+	p.API.LogInfo(jobpost.CreatedBy)
+	jobpostJSON, err1 := json.Marshal(jobpost)
+	if err1 != nil {
+		p.API.LogError("failed to marshal Jobpost %s", jobpost.ID)
+		return fmt.Sprintf("failed to marshal Jobpost %s", jobpost.ID)
+	}
+	p.API.LogInfo(string(jobpostJSON))
+	err5 := p.API.KVSet(jobpost.ID, jobpostJSON)
+	if err5 != nil {
+		p.API.LogError("failed KVSet %s", err5)
+		return fmt.Sprintf("failed KVSet %s", err5)
+	}
+	return nil
+}
+
 func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostResponse) (Jobpost, interface{}) {
 	var jobpost Jobpost
 	bytes, err1 := p.API.KVGet(postID)

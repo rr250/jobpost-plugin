@@ -19,10 +19,12 @@ import (
 
 func (p *Plugin) InitAPI() *mux.Router {
 	r := mux.NewRouter()
-	r.HandleFunc("/dialog", p.handleDialog).Methods("POST")
+	r.HandleFunc("/createjobpost", p.createJobpost).Methods("POST")
 	r.HandleFunc("/applytojob", p.applyToJob).Methods("POST")
 	r.HandleFunc("/submit", p.submit).Methods("POST")
 	r.HandleFunc("/getjobpostbyid", p.getJobPostByID).Methods("POST")
+	r.HandleFunc("/editjobpostbyid", p.editJobPostByID).Methods("POST")
+	r.HandleFunc("/editjobpostsubmit", p.editJobpostSubmit).Methods("POST")
 	r.HandleFunc("/downloadjobpostbyid", p.downloadJobPostByID).Methods("POST")
 	return r
 }
@@ -31,7 +33,7 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 	p.router.ServeHTTP(w, r)
 }
 
-func (p *Plugin) handleDialog(w http.ResponseWriter, req *http.Request) {
+func (p *Plugin) createJobpost(w http.ResponseWriter, req *http.Request) {
 
 	request := model.SubmitDialogRequestFromJson(req.Body)
 
@@ -416,6 +418,209 @@ func (p *Plugin) getJobPostByID(w http.ResponseWriter, req *http.Request) {
 		p.API.SendEphemeralPost(request.UserId, postModel)
 	}
 	writePostActionIntegrationResponseOk(w, &model.PostActionIntegrationResponse{})
+}
+
+func (p *Plugin) editJobPostByID(w http.ResponseWriter, req *http.Request) {
+	request := model.PostActionIntegrationRequestFromJson(req.Body)
+	jobpostID := request.Context["jobpostid"].(string)
+	log.Println(jobpostID)
+	jobpost, err1 := p.getJobPost(jobpostID)
+	if err1 != nil {
+		p.API.LogError("failed to get jobpost", err1)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   "Some Error Happened",
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
+	dialogRequest := model.OpenDialogRequest{
+		TriggerId: request.TriggerId,
+		URL:       fmt.Sprintf("/plugins/%s/editjobpostsubmit", manifest.ID),
+		Dialog: model.Dialog{
+			Title:       "Edit Jobpost" + jobpost.Company + " - " + jobpost.Position,
+			CallbackId:  model.NewId(),
+			SubmitLabel: "Submit",
+			State:       request.Context["jobpostid"].(string),
+			Elements: []model.DialogElement{
+				{
+					DisplayName: "Job Description",
+					Name:        "description",
+					Type:        "textarea",
+					SubType:     "text",
+					Default:     jobpost.Description,
+				},
+				{
+					DisplayName: "Skills Required",
+					Name:        "skills",
+					Type:        "text",
+					SubType:     "text",
+					Default:     jobpost.Skills,
+				},
+				{
+					DisplayName: "Minimum Experience",
+					Name:        "minExperience",
+					Placeholder: "years of experience",
+					Type:        "text",
+					SubType:     "text",
+					Default:     fmt.Sprintf("%d", jobpost.MinExperience),
+				},
+				{
+					DisplayName: "Maximum Experience",
+					Name:        "maxExperience",
+					Placeholder: "years of experience",
+					Type:        "text",
+					SubType:     "text",
+					Default:     fmt.Sprintf("%d", jobpost.MaxExperience),
+				},
+				{
+					DisplayName: "Location",
+					Name:        "location",
+					Type:        "text",
+					SubType:     "text",
+					Default:     jobpost.Location,
+				},
+			},
+		},
+	}
+	if pErr := p.API.OpenInteractiveDialog(dialogRequest); pErr != nil {
+		p.API.LogError("Failed opening interactive dialog " + pErr.Error())
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("Failed opening interactive dialog " + pErr.Error()),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+	}
+	writePostActionIntegrationResponseOk(w, &model.PostActionIntegrationResponse{})
+}
+
+func (p *Plugin) editJobpostSubmit(w http.ResponseWriter, req *http.Request) {
+
+	request := model.SubmitDialogRequestFromJson(req.Body)
+	description := request.Submission["description"]
+	skills := request.Submission["skills"]
+	minExperience := request.Submission["minExperience"]
+	maxExperience := request.Submission["maxExperience"]
+	location := request.Submission["location"]
+	descriptionStr := description.(string)
+	skillsStr := skills.(string)
+	minExperienceStr := minExperience.(string)
+	maxExperienceStr := maxExperience.(string)
+	locationStr := location.(string)
+	minExperienceInt, err11 := strconv.Atoi(minExperienceStr)
+	if err11 != nil {
+		p.API.LogError("Not an integer", err11)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("MinExperience is not an integer %s", err11),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
+	maxExperienceInt, err12 := strconv.Atoi(maxExperienceStr)
+	if err12 != nil {
+		p.API.LogError("Not an integer", err12)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("MaxExperience is not an integer %s", err12),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
+	if minExperienceInt < 0 || maxExperienceInt < 0 || maxExperienceInt < minExperienceInt {
+		p.API.LogError("Less than zero")
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("Experience less than zero or maxExperience less than minExperience"),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
+	jobpost, err1 := p.getJobPost(request.State)
+	if err1 != nil {
+		p.API.LogError("failed to get jobpost", err1)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   "Some Error Happened",
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
+
+	post, err2 := p.API.GetPost(jobpost.PostID)
+	if err1 != nil {
+		p.API.LogError("failed to get post", err2)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   "Some Error Happened",
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
+
+	post.Props = model.StringInterface{
+		"attachments": []*model.SlackAttachment{
+			{
+				Text: "Company: " + jobpost.Company + "\nPositon: " + jobpost.Position + "\nDescription: " + descriptionStr + "\nSkills: " + skillsStr + "\nExperience Required: " + minExperienceStr + "-" + maxExperienceStr + " years" + "\nLocation: " + locationStr,
+				Actions: []*model.PostAction{
+					{
+						Integration: &model.PostActionIntegration{
+							URL: fmt.Sprintf("/plugins/%s/applytojob", manifest.ID),
+							Context: model.StringInterface{
+								"action":    "applyToJob",
+								"submision": request.Submission,
+								"jobpostid": jobpost.ID,
+							},
+						},
+						Type: model.POST_ACTION_TYPE_BUTTON,
+						Name: "Apply",
+					},
+				},
+			},
+		},
+	}
+
+	jobpost.Description = descriptionStr
+	jobpost.Skills = skillsStr
+	jobpost.MinExperience = minExperienceInt
+	jobpost.MaxExperience = maxExperienceInt
+	jobpost.Location = locationStr
+	err6 := p.updateJobpost(jobpost)
+	if err6 != nil {
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   err6.(string),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	} else {
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   "Jobpost updated. See all your jobposts by command `/jobpost list`",
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+	}
+
+	post, err5 := p.API.UpdatePost(post)
+	if err5 != nil {
+		p.API.LogError("failed to create post", err5)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("failed to create post %s", err5),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
 }
 
 func (p *Plugin) downloadJobPostByID(w http.ResponseWriter, req *http.Request) {
