@@ -234,10 +234,7 @@ func (p *Plugin) createJobpost(w http.ResponseWriter, req *http.Request) {
 	if err10 != nil {
 		p.API.LogError("failed to create post", err10)
 	}
-
-	for i := jobpost.MinExperience; i <= jobpost.MaxExperience; i++ {
-		p.sendToSubscribers(postModel1, i)
-	}
+	p.sendToSubscribers(postModel1, jobpost.MinExperience, jobpost.MaxExperience)
 }
 
 func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {

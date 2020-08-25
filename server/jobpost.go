@@ -263,24 +263,40 @@ func (p *Plugin) unSubscribeToExperience(userID string, year int) interface{} {
 	return nil
 }
 
-func (p *Plugin) sendToSubscribers(postModel *model.Post, year int) {
-	bytes, err2 := p.API.KVGet("year-" + strconv.Itoa(year))
-	p.API.LogInfo(string(bytes))
-	if err2 != nil {
-		p.API.LogError("failed KVGet %s", err2)
-		return
-	}
-	var subscribers []Subscriber
-	if bytes != nil {
-		if err3 := json.Unmarshal(bytes, &subscribers); err3 != nil {
+func (p *Plugin) sendToSubscribers(postModel *model.Post, minYear int, maxYear int) {
+	var subscriberUserIDs []string
+	for year := minYear; year <= maxYear; year++ {
+		bytes, err2 := p.API.KVGet("year-" + strconv.Itoa(year))
+		p.API.LogInfo(string(bytes))
+		if err2 != nil {
+			p.API.LogError("failed KVGet %s", err2)
 			return
 		}
-		for _, subscriber := range subscribers {
-			channel, err1 := p.API.GetDirectChannel(subscriber.UserID, p.botUserID)
-			if err1 == nil {
-				postModel.ChannelId = channel.Id
-				p.API.CreatePost(postModel)
+		var subscribers []Subscriber
+		if bytes != nil {
+			if err3 := json.Unmarshal(bytes, &subscribers); err3 != nil {
+				return
 			}
+			for _, subscriber := range subscribers {
+				subscriberUserIDs = append(subscriberUserIDs, subscriber.UserID)
+			}
+		}
+	}
+	subscriberUserIDmap := make(map[string]struct{})
+	var exists = struct{}{}
+	for _, subscriberUserID := range subscriberUserIDs {
+		subscriberUserIDmap[subscriberUserID] = exists
+	}
+	var subscriberUserIDList []string
+	for k := range subscriberUserIDmap {
+		subscriberUserIDList = append(subscriberUserIDList, k)
+	}
+
+	for _, subscriberUserID := range subscriberUserIDList {
+		channel, err1 := p.API.GetDirectChannel(subscriberUserID, p.botUserID)
+		if err1 == nil {
+			postModel.ChannelId = channel.Id
+			p.API.CreatePost(postModel)
 		}
 	}
 	return
