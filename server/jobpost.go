@@ -264,7 +264,8 @@ func (p *Plugin) unSubscribeToExperience(userID string, year int) interface{} {
 }
 
 func (p *Plugin) sendToSubscribers(postModel *model.Post, minYear int, maxYear int) {
-	var subscriberUserIDs []string
+	subscriberUserIDmap := make(map[string]struct{})
+	var exists = struct{}{}
 	for year := minYear; year <= maxYear; year++ {
 		bytes, err2 := p.API.KVGet("year-" + strconv.Itoa(year))
 		p.API.LogInfo(string(bytes))
@@ -278,21 +279,11 @@ func (p *Plugin) sendToSubscribers(postModel *model.Post, minYear int, maxYear i
 				return
 			}
 			for _, subscriber := range subscribers {
-				subscriberUserIDs = append(subscriberUserIDs, subscriber.UserID)
+				subscriberUserIDmap[subscriber.UserID] = exists
 			}
 		}
 	}
-	subscriberUserIDmap := make(map[string]struct{})
-	var exists = struct{}{}
-	for _, subscriberUserID := range subscriberUserIDs {
-		subscriberUserIDmap[subscriberUserID] = exists
-	}
-	var subscriberUserIDList []string
-	for k := range subscriberUserIDmap {
-		subscriberUserIDList = append(subscriberUserIDList, k)
-	}
-
-	for _, subscriberUserID := range subscriberUserIDList {
+	for subscriberUserID := range subscriberUserIDmap {
 		channel, err1 := p.API.GetDirectChannel(subscriberUserID, p.botUserID)
 		if err1 == nil {
 			postModel.ChannelId = channel.Id
