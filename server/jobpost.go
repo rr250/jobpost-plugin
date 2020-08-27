@@ -125,7 +125,7 @@ func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostRespon
 		p.API.LogError("failed to unmarshal", err2)
 		return jobpost, fmt.Sprintf("failed to unmarshal  %s", err2)
 	}
-	if (jobpost.MinExperience) > int(math.Ceil(jobpostResponse.Experience)) || (jobpost.MaxExperience) < int(math.Ceil(jobpostResponse.Experience)) {
+	if (jobpost.MinExperience) > int(math.Ceil(jobpostResponse.Experience)) || (jobpost.MaxExperience) < int(math.Ceil(jobpostResponse.Experience-1)) {
 		p.API.LogError("Experience is not matching. Please apply to other jobs.")
 		return jobpost, fmt.Sprintf("Experience is not matching. Please apply to other jobs.")
 	}

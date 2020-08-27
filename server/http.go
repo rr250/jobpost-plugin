@@ -436,7 +436,7 @@ func (p *Plugin) editJobPostByID(w http.ResponseWriter, req *http.Request) {
 		TriggerId: request.TriggerId,
 		URL:       fmt.Sprintf("/plugins/%s/editjobpostsubmit", manifest.ID),
 		Dialog: model.Dialog{
-			Title:       "Edit Jobpost" + jobpost.Company + " - " + jobpost.Position,
+			Title:       "Edit Jobpost: " + jobpost.Company + " - " + jobpost.Position,
 			CallbackId:  model.NewId(),
 			SubmitLabel: "Submit",
 			State:       request.Context["jobpostid"].(string),
