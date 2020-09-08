@@ -25,6 +25,7 @@ func (p *Plugin) InitAPI() *mux.Router {
 	r.HandleFunc("/getjobpostbyid", p.getJobPostByID).Methods("POST")
 	r.HandleFunc("/editjobpostbyid", p.editJobPostByID).Methods("POST")
 	r.HandleFunc("/editjobpostsubmit", p.editJobpostSubmit).Methods("POST")
+	r.HandleFunc("/deactivatejobpostbyid", p.deactivateJobPostByID).Methods("POST")
 	r.HandleFunc("/downloadjobpostbyid", p.downloadJobPostByID).Methods("POST")
 	return r
 }
@@ -241,6 +242,27 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 	request := model.PostActionIntegrationRequestFromJson(req.Body)
 	submision := request.Context["submision"].(map[string]interface{})
 	writePostActionIntegrationResponseOk(w, &model.PostActionIntegrationResponse{})
+	jobpost, err := p.getJobPost(request.Context["jobpostid"].(string))
+	if err != nil {
+		p.API.LogError("failed to get jobpost", err)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("failed to get jobpost %v", err),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
+	if jobpost.IsDeactivated {
+		p.API.LogError("jobpost expired")
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   "Jobpost is not active",
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
 	user, err := p.API.GetUser(request.UserId)
 	userFullName := " "
 	userEmail := "@gmail.com"
@@ -378,7 +400,7 @@ func (p *Plugin) getJobPostByID(w http.ResponseWriter, req *http.Request) {
 		postModel := &model.Post{
 			UserId:    request.UserId,
 			ChannelId: request.ChannelId,
-			Message:   "Company: " + jobpost.Company + "\nPositon: " + jobpost.Position + "\nDescription: " + jobpost.Description + "\nSkills: " + jobpost.Skills + "\nExperience Required: " + strconv.Itoa(jobpost.MinExperience) + "-" + strconv.Itoa(jobpost.MaxExperience) + " years" + "\nLocation: " + jobpost.Location,
+			Message:   "Company: " + jobpost.Company + "\nPositon: " + jobpost.Position + "\nDescription: " + jobpost.Description + "\nSkills: " + jobpost.Skills + "\nExperience Required: " + strconv.Itoa(jobpost.MinExperience) + "-" + strconv.Itoa(jobpost.MaxExperience) + " years" + "\nLocation: " + jobpost.Location + "\nIs Active: " + fmt.Sprintf("%t", !jobpost.IsDeactivated),
 			Props: model.StringInterface{
 				"attachments": []*model.SlackAttachment{},
 			},
@@ -609,11 +631,77 @@ func (p *Plugin) editJobpostSubmit(w http.ResponseWriter, req *http.Request) {
 
 	post, err5 := p.API.UpdatePost(post)
 	if err5 != nil {
-		p.API.LogError("failed to create post", err5)
+		p.API.LogError("failed to update post", err5)
 		postModel := &model.Post{
 			UserId:    request.UserId,
 			ChannelId: request.ChannelId,
-			Message:   fmt.Sprintf("failed to create post %s", err5),
+			Message:   fmt.Sprintf("failed to update post %s", err5),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
+}
+
+func (p *Plugin) deactivateJobPostByID(w http.ResponseWriter, req *http.Request) {
+	request := model.PostActionIntegrationRequestFromJson(req.Body)
+	jobpostID := request.Context["jobpostid"].(string)
+	log.Println(jobpostID)
+	jobpost, err1 := p.getJobPost(jobpostID)
+	if err1 != nil {
+		p.API.LogError("failed to get jobpost", err1)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   "Some Error Happened",
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
+	jobpost.IsDeactivated = true
+	post, err2 := p.API.GetPost(jobpost.PostID)
+	if err1 != nil {
+		p.API.LogError("failed to get post", err2)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   "Some Error Happened",
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	}
+
+	post.Props = model.StringInterface{
+		"attachments": []*model.SlackAttachment{
+			{
+				Text: "Company: " + jobpost.Company + "\nPositon: " + jobpost.Position + "\nDescription: " + jobpost.Description + "\nSkills: " + jobpost.Skills + "\nExperience Required: " + strconv.Itoa(jobpost.MinExperience) + "-" + strconv.Itoa(jobpost.MaxExperience) + " years" + "\nLocation: " + jobpost.Location,
+			},
+		},
+	}
+	err6 := p.updateJobpost(jobpost)
+	if err6 != nil {
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   err6.(string),
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+		return
+	} else {
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   "Jobpost deactivated",
+		}
+		p.API.SendEphemeralPost(request.UserId, postModel)
+	}
+
+	post, err5 := p.API.UpdatePost(post)
+	if err5 != nil {
+		p.API.LogError("failed to update post", err5)
+		postModel := &model.Post{
+			UserId:    request.UserId,
+			ChannelId: request.ChannelId,
+			Message:   fmt.Sprintf("failed to update post %s", err5),
 		}
 		p.API.SendEphemeralPost(request.UserId, postModel)
 		return

@@ -125,6 +125,17 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 							Type: model.POST_ACTION_TYPE_BUTTON,
 							Name: "Edit",
 						},
+						{
+							Integration: &model.PostActionIntegration{
+								URL: fmt.Sprintf("/plugins/%s/deactivatejobpostbyid", manifest.ID),
+								Context: model.StringInterface{
+									"action":    "deactivatejobpostbyid",
+									"jobpostid": jobpost.JobpostID,
+								},
+							},
+							Type: model.POST_ACTION_TYPE_BUTTON,
+							Name: "Deactivate",
+						},
 					},
 				}
 				postModel.Props["attachments"] = append(postModel.Props["attachments"].([]*model.SlackAttachment), attachment)

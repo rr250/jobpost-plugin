@@ -25,6 +25,7 @@ type Jobpost struct {
 	SheetID          string
 	SheetURL         string
 	PostID           string
+	IsDeactivated    bool
 	JobpostResponses []JobpostResponse
 }
 
