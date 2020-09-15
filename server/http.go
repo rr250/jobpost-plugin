@@ -263,14 +263,12 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 		p.API.SendEphemeralPost(request.UserId, postModel)
 		return
 	}
-	user, err := p.API.GetUser(request.UserId)
+	user, err2 := p.API.GetUser(request.UserId)
 	userFullName := " "
-	userEmail := "@gmail.com"
-	if err != nil {
-		p.API.LogError("failed to get user", err)
+	if err2 != nil {
+		p.API.LogError("failed to get user", err2)
 	} else {
 		userFullName = user.FirstName + " " + user.LastName
-		userEmail = user.Email
 	}
 	userDetails, err1 := p.getResume(request.UserId)
 	resumeStr := " "
@@ -292,13 +290,6 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 					Type:        "text",
 					SubType:     "text",
 					Default:     userFullName,
-				},
-				{
-					DisplayName: "Email",
-					Name:        "email",
-					Type:        "text",
-					SubType:     "email",
-					Default:     userEmail,
 				},
 				{
 					DisplayName: "Resume",
@@ -354,10 +345,14 @@ func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 		p.API.SendEphemeralPost(request.UserId, postModel)
 		return
 	}
+	user, err2 := p.API.GetUser(request.UserId)
+	if err2 != nil {
+		p.API.LogError("failed to get user", err2)
+	}
 	jobpostResponse := JobpostResponse{
 		UserID:       request.UserId,
 		Name:         request.Submission["name"].(string),
-		Email:        request.Submission["email"].(string),
+		Email:        user.Email,
 		Resume:       request.Submission["resume"].(string),
 		Reason:       request.Submission["reason"].(string),
 		NoticePeriod: request.Submission["noticePeriod"].(string),
