@@ -106,9 +106,9 @@ func (p *Plugin) createJobpost(w http.ResponseWriter, req *http.Request) {
 							Integration: &model.PostActionIntegration{
 								URL: fmt.Sprintf("/plugins/%s/applytojob", manifest.ID),
 								Context: model.StringInterface{
-									"action":    "applyToJob",
-									"submision": request.Submission,
-									"jobpostid": jobpostID,
+									"action":     "applyToJob",
+									"submission": request.Submission,
+									"jobpostid":  jobpostID,
 								},
 							},
 							Type: model.POST_ACTION_TYPE_BUTTON,
@@ -240,7 +240,7 @@ func (p *Plugin) createJobpost(w http.ResponseWriter, req *http.Request) {
 
 func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 	request := model.PostActionIntegrationRequestFromJson(req.Body)
-	submision := request.Context["submision"].(map[string]interface{})
+	submission := request.Context["submission"].(map[string]interface{})
 	writePostActionIntegrationResponseOk(w, &model.PostActionIntegrationResponse{})
 	jobpost, err := p.getJobPost(request.Context["jobpostid"].(string))
 	if err != nil {
@@ -279,7 +279,7 @@ func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 		TriggerId: request.TriggerId,
 		URL:       fmt.Sprintf("/plugins/%s/submit", manifest.ID),
 		Dialog: model.Dialog{
-			Title:       submision["company"].(string) + " - " + submision["position"].(string),
+			Title:       submission["company"].(string) + " - " + submission["position"].(string),
 			CallbackId:  model.NewId(),
 			SubmitLabel: "Submit",
 			State:       request.Context["jobpostid"].(string),
@@ -579,6 +579,8 @@ func (p *Plugin) editJobpostSubmit(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	request.Submission["company"] = jobpost.Company
+	request.Submission["position"] = jobpost.Position
 	post.Props = model.StringInterface{
 		"attachments": []*model.SlackAttachment{
 			{
@@ -588,9 +590,9 @@ func (p *Plugin) editJobpostSubmit(w http.ResponseWriter, req *http.Request) {
 						Integration: &model.PostActionIntegration{
 							URL: fmt.Sprintf("/plugins/%s/applytojob", manifest.ID),
 							Context: model.StringInterface{
-								"action":    "applyToJob",
-								"submision": request.Submission,
-								"jobpostid": jobpost.ID,
+								"action":     "applyToJob",
+								"submission": request.Submission,
+								"jobpostid":  jobpost.ID,
 							},
 						},
 						Type: model.POST_ACTION_TYPE_BUTTON,
