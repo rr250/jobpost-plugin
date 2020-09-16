@@ -437,14 +437,13 @@ func (p *Plugin) getJobPostByID(w http.ResponseWriter, req *http.Request) {
 func (p *Plugin) editJobPostByID(w http.ResponseWriter, req *http.Request) {
 	request := model.PostActionIntegrationRequestFromJson(req.Body)
 	jobpostID := request.Context["jobpostid"].(string)
-	log.Println(jobpostID)
 	jobpost, err1 := p.getJobPost(jobpostID)
 	if err1 != nil {
 		p.API.LogError("failed to get jobpost", err1)
 		postModel := &model.Post{
 			UserId:    request.UserId,
 			ChannelId: request.ChannelId,
-			Message:   "Some Error Happened",
+			Message:   "Failed to get jobpost",
 		}
 		p.API.SendEphemeralPost(request.UserId, postModel)
 		return
@@ -456,7 +455,7 @@ func (p *Plugin) editJobPostByID(w http.ResponseWriter, req *http.Request) {
 			Title:       "Edit Jobpost: " + jobpost.Company + " - " + jobpost.Position,
 			CallbackId:  model.NewId(),
 			SubmitLabel: "Submit",
-			State:       request.Context["jobpostid"].(string),
+			State:       jobpostID,
 			Elements: []model.DialogElement{
 				{
 					DisplayName: "Job Description",
