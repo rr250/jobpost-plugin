@@ -240,7 +240,10 @@ func (p *Plugin) createJobpost(w http.ResponseWriter, req *http.Request) {
 
 func (p *Plugin) applyToJob(w http.ResponseWriter, req *http.Request) {
 	request := model.PostActionIntegrationRequestFromJson(req.Body)
-	submission := request.Context["submission"].(map[string]interface{})
+	submission, ok := request.Context["submission"].(map[string]interface{})
+	if !ok {
+		submission, ok = request.Context["submision"].(map[string]interface{})
+	}
 	writePostActionIntegrationResponseOk(w, &model.PostActionIntegrationResponse{})
 	jobpost, err := p.getJobPost(request.Context["jobpostid"].(string))
 	if err != nil {
