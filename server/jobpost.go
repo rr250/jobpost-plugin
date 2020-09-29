@@ -30,14 +30,15 @@ type Jobpost struct {
 }
 
 type JobpostResponse struct {
-	UserID       string
-	Name         string
-	Email        string
-	Resume       string
-	Reason       string
-	Experience   float64
-	NoticePeriod string
-	FilledAt     time.Time
+	JobpostResponseID string
+	UserID            string
+	Name              string
+	Email             string
+	Resume            string
+	Reason            string
+	Experience        float64
+	NoticePeriod      string
+	FilledAt          time.Time
 }
 
 type JobPerUser struct {
@@ -115,9 +116,9 @@ func (p *Plugin) updateJobpost(jobpost Jobpost) interface{} {
 	return nil
 }
 
-func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostResponse) (Jobpost, interface{}) {
+func (p *Plugin) addJobpostResponse(jobpostID string, jobpostResponse JobpostResponse) (Jobpost, interface{}) {
 	var jobpost Jobpost
-	bytes, err1 := p.API.KVGet(postID)
+	bytes, err1 := p.API.KVGet(jobpostID)
 	if err1 != nil {
 		p.API.LogError("failed KVGet %s", err1)
 		return jobpost, fmt.Sprintf("failed KVGet %s", err1)
@@ -147,7 +148,17 @@ func (p *Plugin) addJobpostResponse(postID string, jobpostResponse JobpostRespon
 	}
 	_, err7 := p.sheetsService.Spreadsheets.Values.Append(jobpost.SheetID, readRange, valueRange).ValueInputOption("USER_ENTERED").Do()
 	if err7 != nil {
-		return jobpost, fmt.Sprintf("Unable to append data to sheet: %v", err7)
+		channel, err8 := p.API.GetDirectChannel(jobpost.CreatedBy, p.botUserID)
+		if err8 != nil {
+			p.API.LogError("failed to get channel", err8)
+		}
+		postModel := &model.Post{
+			UserId:    jobpost.CreatedBy,
+			ChannelId: channel.Id,
+			Message:   "There is some problem with google sheet:" + jobpost.Company + "-" + jobpost.Position + ": " + jobpost.SheetURL + ". Please track the users by downloading it as csv. Use /jobpost list",
+		}
+		p.API.CreatePost(postModel)
+
 	}
 	jobpostJSON, err3 := json.Marshal(jobpost)
 	if err3 != nil {
@@ -197,7 +208,6 @@ func (p *Plugin) getJobPost(jobpostID string) (Jobpost, interface{}) {
 
 func (p *Plugin) subscribeToExperience(userID string, year int) interface{} {
 	bytes, err2 := p.API.KVGet("year-" + strconv.Itoa(year))
-	p.API.LogInfo(string(bytes))
 	if err2 != nil {
 		p.API.LogError("failed KVGet %s", err2)
 		return fmt.Sprintf("failed KVGet %s", err2)

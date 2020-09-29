@@ -14,7 +14,7 @@ import (
 func (p *Plugin) UserSubscribe() {
 	bundlePath, err := p.API.GetBundlePath()
 	if err != nil {
-		log.Fatalf("failed to get bundle path: %v", err)
+		p.API.LogError("failed to get bundle path: %v", err)
 	}
 	usersCsv, err1 := ioutil.ReadFile(filepath.Join(bundlePath, "assets/usersToSubscribe.csv"))
 	if err1 != nil {
@@ -25,7 +25,7 @@ func (p *Plugin) UserSubscribe() {
 	reader := csv.NewReader(buf)
 	users, err2 := reader.ReadAll()
 	if err2 != nil {
-		log.Fatalf("Unable to read csv from reader: %v", err2)
+		p.API.LogError("Unable to read csv from reader: %v", err2)
 		return
 	}
 	for _, user := range users {
@@ -45,4 +45,5 @@ func (p *Plugin) UserSubscribe() {
 		p.subscribeToExperience(userDetails.Id, userExperience)
 	}
 	os.Remove(filepath.Join(bundlePath, "assets/usersToSubscribe.csv"))
+	p.API.LogInfo("Users Subscribed")
 }

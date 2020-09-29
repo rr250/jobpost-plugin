@@ -27,6 +27,7 @@ func (p *Plugin) InitAPI() *mux.Router {
 	r.HandleFunc("/editjobpostsubmit", p.editJobpostSubmit).Methods("POST")
 	r.HandleFunc("/deactivatejobpostbyid", p.deactivateJobPostByID).Methods("POST")
 	r.HandleFunc("/downloadjobpostbyid", p.downloadJobPostByID).Methods("POST")
+	p.API.LogInfo("Router initialized")
 	return r
 }
 
@@ -353,17 +354,19 @@ func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 		p.API.LogError("failed to get user", err2)
 	}
 	jobpostResponse := JobpostResponse{
-		UserID:       request.UserId,
-		Name:         request.Submission["name"].(string),
-		Email:        user.Email,
-		Resume:       request.Submission["resume"].(string),
-		Reason:       request.Submission["reason"].(string),
-		NoticePeriod: request.Submission["noticePeriod"].(string),
-		Experience:   experienceFlt,
-		FilledAt:     time.Now(),
+		JobpostResponseID: model.NewId(),
+		UserID:            request.UserId,
+		Name:              request.Submission["name"].(string),
+		Email:             user.Email,
+		Resume:            request.Submission["resume"].(string),
+		Reason:            request.Submission["reason"].(string),
+		NoticePeriod:      request.Submission["noticePeriod"].(string),
+		Experience:        experienceFlt,
+		FilledAt:          time.Now(),
 	}
 	jobpost, err := p.addJobpostResponse(request.State, jobpostResponse)
 	if err != nil {
+		p.API.LogError("failed to add response", err)
 		postModel := &model.Post{
 			UserId:    request.UserId,
 			ChannelId: request.ChannelId,
