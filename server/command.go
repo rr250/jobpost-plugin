@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -88,7 +87,6 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 			p.API.SendEphemeralPost(args.UserId, postModel)
 		}
 	} else if strings.Trim(command, " ") == "/"+trigger+" list" {
-		log.Println("list")
 		jobposts, err := p.getJobsPerUser(args.UserId)
 		if err == nil {
 			postModel := &model.Post{
@@ -151,7 +149,6 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 			p.API.SendEphemeralPost(args.UserId, postModel)
 		}
 	} else if splitText := strings.Split(strings.Trim(command, " "), " "); splitText[1] == "subscribe" {
-		log.Println("subscribe")
 		year, err1 := strconv.Atoi(splitText[2])
 		if err1 != nil {
 			postModel := &model.Post{
@@ -179,7 +176,6 @@ func (p *Plugin) ExecuteCommand(c *plugin.Context, args *model.CommandArgs) (*mo
 			}
 		}
 	} else if splitText := strings.Split(strings.Trim(command, " "), " "); splitText[1] == "unsubscribe" {
-		log.Println("unsubscribe")
 		year, err1 := strconv.Atoi(splitText[2])
 		if err1 != nil {
 			postModel := &model.Post{

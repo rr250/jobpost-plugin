@@ -96,6 +96,6 @@ func (p *Plugin) InitGoogleServices() (*drive.Service, *sheets.Service) {
 	if err4 != nil {
 		p.API.LogError("Unable to retrieve Sheets client: %v", err4)
 	}
-	p.API.LogInfo("Google APIs activated")
+	p.API.LogInfo("Google API activated")
 	return driveService, sheetsService
 }

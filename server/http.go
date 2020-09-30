@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -128,7 +127,7 @@ func (p *Plugin) createJobpost(w http.ResponseWriter, req *http.Request) {
 	}
 	sheet, err3 := p.sheetsService.Spreadsheets.Create(sheetCreate).Do()
 	if err3 != nil {
-		log.Fatalf("Unable to create sheet: %v", err3)
+		p.API.LogError("Unable to create sheet: %v", err3)
 		postModel := &model.Post{
 			UserId:    request.UserId,
 			ChannelId: request.ChannelId,
@@ -137,7 +136,6 @@ func (p *Plugin) createJobpost(w http.ResponseWriter, req *http.Request) {
 		p.API.SendEphemeralPost(request.UserId, postModel)
 		return
 	}
-	log.Println(sheet)
 	readRange := "Sheet1!A:Z"
 	valueRange := &sheets.ValueRange{
 		Values: [][]interface{}{
@@ -154,7 +152,7 @@ func (p *Plugin) createJobpost(w http.ResponseWriter, req *http.Request) {
 	}
 	_, err7 := p.sheetsService.Spreadsheets.Values.Append(sheet.SpreadsheetId, readRange, valueRange).ValueInputOption("USER_ENTERED").Do()
 	if err7 != nil {
-		log.Fatalf("Unable to append data from sheet: %v", err7)
+		p.API.LogError("Unable to append data from sheet: %v", err7)
 		postModel := &model.Post{
 			UserId:    request.UserId,
 			ChannelId: request.ChannelId,
@@ -169,7 +167,7 @@ func (p *Plugin) createJobpost(w http.ResponseWriter, req *http.Request) {
 	}
 	_, err8 := p.driveService.Permissions.Create(sheet.SpreadsheetId, permission).Do()
 	if err8 != nil {
-		log.Fatalf("Unable to change drive permission %v", err8)
+		p.API.LogError("Unable to change drive permission %v", err8)
 		postModel := &model.Post{
 			UserId:    request.UserId,
 			ChannelId: request.ChannelId,
@@ -395,7 +393,7 @@ func (p *Plugin) submit(w http.ResponseWriter, req *http.Request) {
 func (p *Plugin) getJobPostByID(w http.ResponseWriter, req *http.Request) {
 	request := model.PostActionIntegrationRequestFromJson(req.Body)
 	jobpostID := request.Context["jobpostid"].(string)
-	log.Println(jobpostID)
+	p.API.LogError(jobpostID)
 	jobpost, err := p.getJobPost(jobpostID)
 	if err == nil {
 		postModel := &model.Post{
@@ -647,7 +645,7 @@ func (p *Plugin) editJobpostSubmit(w http.ResponseWriter, req *http.Request) {
 func (p *Plugin) deactivateJobPostByID(w http.ResponseWriter, req *http.Request) {
 	request := model.PostActionIntegrationRequestFromJson(req.Body)
 	jobpostID := request.Context["jobpostid"].(string)
-	log.Println(jobpostID)
+	p.API.LogError(jobpostID)
 	jobpost, err1 := p.getJobPost(jobpostID)
 	if err1 != nil {
 		p.API.LogError("failed to get jobpost", err1)
@@ -713,7 +711,6 @@ func (p *Plugin) deactivateJobPostByID(w http.ResponseWriter, req *http.Request)
 func (p *Plugin) downloadJobPostByID(w http.ResponseWriter, req *http.Request) {
 	request := model.PostActionIntegrationRequestFromJson(req.Body)
 	jobpostID := request.Context["jobpostid"].(string)
-	log.Println(jobpostID)
 	jobpost, err := p.getJobPost(jobpostID)
 	if err == nil {
 		buf := bytes.NewBuffer(nil)

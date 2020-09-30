@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/csv"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -18,7 +17,7 @@ func (p *Plugin) UserSubscribe() {
 	}
 	usersCsv, err1 := ioutil.ReadFile(filepath.Join(bundlePath, "assets/usersToSubscribe.csv"))
 	if err1 != nil {
-		log.Printf("Unable to read csv: %v", err1)
+		p.API.LogError("Unable to read csv: %v", err1)
 		return
 	}
 	buf := bytes.NewBuffer(usersCsv)
